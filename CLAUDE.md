@@ -1,0 +1,12 @@
+# p1-third-party-exchange
+
+Demo-tier standalone app: PingOne token exchange (RFC 8693) with a third-party signed JWT as the actor token, MOCK only (no PingOne call, no outbound network). Ported from the AI-DEMO2 twin page; refusal texts, expressions and limits were MEASURED live there on 2026-10-27 and are copied as data.
+
+- Run: `./scripts/run.sh` (http://127.0.0.1:5200). Test: `npm test` (server is `node --test test/*.test.js`, a glob). Preflight: `npm run doctor`. Reset: `npm run reset`. Talk track and content pack are generated: `npm run talk-track`, `npm run content-pack` (tests fail on drift).
+- Core: `server/src/exchangeData.js` (all domain data, labels MEASURED/GUIDE/SAMPLE/OUR CHOICE/UNVERIFIED), `exchange.js` (pure `validateExchange`, mapping, bounded `normalizeInput`). Diagrams are diagram-studio/1 JSON in `server/diagrams/` (accepted and refused), filled by `diagramData.js`; `{{cast}}` tokens come from `cast.js` (3 vertical packs); a test fails on an undefined token.
+- API: `GET /api/vendors`, `POST /api/exchange`, `GET /api/compare`, `GET /api/setup`, `GET /api/diagram`, `GET /api/runs`, `POST /api/reset`, `GET /api/info`, `GET /api/health` (demo-health/1). Workspace id in `X-Workspace`.
+- Rules that bite: loopback bind only; same-origin writes; zero outbound network (netguard); only `.example`/`.invalid` hosts and placeholder UUIDs (a repo test scans); no `crypto.generateKeyPairSync('ec')`; ports 5200-5249; say "P1 Privilege Agent App" if the Privilege product is ever mentioned, never "door"; never print the forbidden-strings list.
+- Honesty: a third-party SUBJECT token is not simulated; the feature flag has no name in the guide, do not invent one; check order when several faults occur is UNVERIFIED.
+- Web: `web/src/App.jsx` (tabs, presenter, Reset incl. diagram positions, X-Workspace via `workspace.js`), `components/ExchangePanel|DiagramTab|CompareTab|SetupTab|AdminTab|TalkTrack`; the setup guide is rendered by `Markdown.jsx` with no raw HTML. The diagram is `PatternDiagram` + `hooks/useDiagramStepper` + `components/diagram/*` (copied from the scaffold, never imported across repos); `studio.js` only maps the diagram-studio document.
+- Trace: `server/src/trace.js` builds W3C traceparent for every mock hop in `/api/exchange`.
+- Open: catalog id D98 is provisional; GitHub repo, runner and SE deploy need owner approval.

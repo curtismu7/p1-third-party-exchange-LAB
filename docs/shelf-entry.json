@@ -1,0 +1,17 @@
+{
+  "demos": [
+    {
+      "id": "p1-third-party-exchange",
+      "name": "P1 Third-Party Exchange",
+      "kind": "Demo",
+      "description": "PingOne token exchange (RFC 8693) that accepts a third-party signed JWT (PingFederate, another PingOne environment, Okta, Auth0, RFC 9068, Microsoft) as the actor token: trusted issuer, assignment, claim mapping, the checks and PingOne's measured refusal texts. Mock only.",
+      "url": "http://localhost:5200",
+      "healthPath": "/api/health",
+      "composeFile": "p1-third-party-exchange/docker-compose.yml",
+      "composeOverlays": [],
+      "notes": "Host-run: ./scripts/run.sh (port 5200). Mock only: no tenant, no credentials, no outbound network. Docker: HOST_PORT=5200 docker compose up --build -d (published on 127.0.0.1 only). The catalog id D98 is PROVISIONAL: the owner confirms it before the shelf entry is merged. The capability is feature-flagged and the guide gives no flag name. A third-party SUBJECT token is not simulated.",
+      "catalogId": "D98",
+      "where": "local"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  build:
+    # Repo variable RUNS_ON (a JSON array, e.g. ["ubuntu-latest"]) overrides the self-hosted Mac default.
+    runs-on: ${{ fromJSON(vars.RUNS_ON || '["self-hosted","macOS"]') }}
+    strategy:
+      matrix:
+        # Node 22 everywhere (owner decision 2026-10-27).
+        node: [22]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      # A spare port in the range: the local container may hold 5200 on this runner.
+      - run: PORT=5209 npm run doctor
+  secrets:
+    runs-on: ${{ fromJSON(vars.RUNS_ON || '["self-hosted","macOS"]') }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - run: PATH="/opt/homebrew/bin:$PATH" gitleaks detect --source . --redact -v
+      # Forbidden-strings gate: the list lives on the runner (never in the repo). The count is printed, the strings never are.
+      - name: forbidden strings (history)
+        run: |
+          list="$HOME/.config/demo-kit/forbidden-strings.txt"
+          if [ ! -f "$list" ]; then echo "forbidden-strings.txt missing on this runner"; exit 1; fi
+          hits=$(git log -p --all | grep -cF -f "$list" || true)
+          echo "forbidden-string hits: $hits"
+          [ "$hits" = "0" ]

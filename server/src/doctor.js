@@ -33,7 +33,7 @@ export async function runChecks({ env = process.env, cast = DEFAULT_CAST } = {})
   const nbf = runExchange(input('okta', { settings: { nbfRequired: true } }), { now: NOW, cast });
   add('nbf-trap', !nbf.ok && nbf.failed.id === 'nbf' ? 'pass' : 'fail', 'Okta is refused on nbf when nbf is required');
   const unlabelled = D.VENDORS.filter((v) => !D.EVIDENCE[v.evidence] || v.mappings.some((m) => !D.EVIDENCE[m.evidence])).map((v) => v.id);
-  add('facts-labelled', unlabelled.length ? 'fail' : 'pass', unlabelled.length ? `issuers with no evidence label: ${unlabelled.join(', ')}` : 'every issuer and mapping carries a GUIDE, SAMPLE, OUR CHOICE or UNVERIFIED label');
+  add('facts-labelled', unlabelled.length ? 'fail' : 'pass', unlabelled.length ? `issuers with no evidence label: ${unlabelled.join(', ')}` : 'every issuer and mapping carries a MEASURED, GUIDE, SAMPLE, OUR CHOICE or UNVERIFIED label');
 
   const data = { ...D, VENDORS: D.VENDORS.map((v) => ({ ...v, claims: undefined })), TITLE: D.TITLE };
   const text = JSON.stringify([data, D.TALK_TRACK, DIAGRAM_NAMES.map(rawDiagram), readSetupMarkdown()]);

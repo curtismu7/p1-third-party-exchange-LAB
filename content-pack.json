@@ -1,0 +1,267 @@
+{
+  "schema": "demo-content-pack/1",
+  "id": "p1-third-party-exchange",
+  "title": "P1 Third-Party Exchange",
+  "version": "0.1.0",
+  "demo": {
+    "id": "p1-third-party-exchange",
+    "name": "P1 Third-Party Exchange",
+    "catalog": "D98",
+    "baseUrl": "http://localhost:5200",
+    "doctor": "/api/health",
+    "tags": [
+      "pingone",
+      "token-exchange",
+      "rfc8693",
+      "trusted-issuer",
+      "mock-only"
+    ]
+  },
+  "glossary": [
+    {
+      "id": "token-exchange",
+      "term": "Token exchange (RFC 8693)",
+      "definition": "An OAuth grant that swaps tokens: the application sends a subject token (and optionally an actor token) and gets a new access token for a resource. Third-party JWTs as the actor token are the new part here (GUIDE).",
+      "aliases": [
+        "RFC 8693",
+        "actor token"
+      ]
+    },
+    {
+      "id": "trusted-issuer",
+      "term": "Trusted issuer",
+      "definition": "A PingOne setting that names another issuer (issuer string plus JWKS URL or inline JWKS), optional audiences, and whether exp, iat and nbf must be present. It must be assigned to an OIDC non-worker application (GUIDE).",
+      "aliases": [
+        "trustedIssuers"
+      ]
+    },
+    {
+      "id": "attribute-mapping",
+      "term": "Attribute mapping",
+      "definition": "An expression on the custom resource that copies a claim from the subject or actor token into the issued access token, for example act.sub from the actor sub. The expressions shown were MEASURED live on 2026-10-27.",
+      "aliases": [
+        "custom resource mapping"
+      ]
+    },
+    {
+      "id": "clock-skew",
+      "term": "Clock skew",
+      "definition": "Seconds, 0 to 60 (PingOne rejects more), that loosen the exp and nbf checks on the third-party token (MEASURED).",
+      "aliases": [
+        "clockSkew"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "rfc8693",
+      "title": "RFC 8693: OAuth 2.0 Token Exchange",
+      "url": "https://www.rfc-editor.org/rfc/rfc8693",
+      "kind": "standard",
+      "use": "Defines the token exchange grant and the act (actor) claim.",
+      "status": "not-read",
+      "checked": "2026-10-27"
+    }
+  ],
+  "cards": [
+    {
+      "id": "try-pf-cc",
+      "label": "Try PingFederate: client credentials",
+      "description": "Token 2 of the guide's sample A. A machine identity: the agent app's own PingFederate token. No iat or nbf, only exp.",
+      "group": "try-it",
+      "action": {
+        "type": "route",
+        "href": "/#vendor-pf-cc"
+      },
+      "terms": [
+        "trusted-issuer",
+        "attribute-mapping"
+      ],
+      "story": "S01"
+    },
+    {
+      "id": "try-pf-oidc",
+      "label": "Try PingFederate: ID token",
+      "description": "Token 2 of the guide's sample B. A user ID token carrying a custom securityLevel claim.",
+      "group": "try-it",
+      "action": {
+        "type": "route",
+        "href": "/#vendor-pf-oidc"
+      },
+      "terms": [
+        "trusted-issuer",
+        "attribute-mapping"
+      ],
+      "story": "S02"
+    },
+    {
+      "id": "try-p1",
+      "label": "Try PingOne (another environment)",
+      "description": "The comparison sheet column for a PingOne token from a different environment. Claim set taken from the sheet and the guide's PingOne token 1.",
+      "group": "try-it",
+      "action": {
+        "type": "route",
+        "href": "/#vendor-p1"
+      },
+      "terms": [
+        "trusted-issuer",
+        "attribute-mapping"
+      ],
+      "story": "S03"
+    },
+    {
+      "id": "try-okta",
+      "label": "Try Okta",
+      "description": "Okta access token. Application id is cid, scopes are scp, user id is uid. Has no nbf.",
+      "group": "try-it",
+      "action": {
+        "type": "route",
+        "href": "/#vendor-okta"
+      },
+      "terms": [
+        "trusted-issuer",
+        "attribute-mapping"
+      ],
+      "story": "S04"
+    },
+    {
+      "id": "try-auth0",
+      "label": "Try Auth0",
+      "description": "Auth0 access token (its default profile). Application id is azp, no jti, no auth_time. Has no nbf.",
+      "group": "try-it",
+      "action": {
+        "type": "route",
+        "href": "/#vendor-auth0"
+      },
+      "terms": [
+        "trusted-issuer",
+        "attribute-mapping"
+      ],
+      "story": "S05"
+    },
+    {
+      "id": "try-rfc9068",
+      "label": "Try RFC 9068 (and Auth0 RFC 9068 profile)",
+      "description": "The standard JWT access-token profile. Required: iss, exp, aud, sub, client_id, iat, jti. Auth0 can issue this shape too.",
+      "group": "try-it",
+      "action": {
+        "type": "route",
+        "href": "/#vendor-rfc9068"
+      },
+      "terms": [
+        "trusted-issuer",
+        "attribute-mapping"
+      ],
+      "story": "S06"
+    },
+    {
+      "id": "try-ms1",
+      "label": "Try Microsoft v1.0",
+      "description": "Entra ID v1.0 access token. Application id is appid, user object id is oid, jti is uti. Has iat, nbf and exp.",
+      "group": "try-it",
+      "action": {
+        "type": "route",
+        "href": "/#vendor-ms1"
+      },
+      "terms": [
+        "trusted-issuer",
+        "attribute-mapping"
+      ],
+      "story": "S07"
+    },
+    {
+      "id": "try-ms2",
+      "label": "Try Microsoft v2.0",
+      "description": "Entra ID v2.0 access token. Application id is azp, no amr, jti is uti. Has iat, nbf and exp.",
+      "group": "try-it",
+      "action": {
+        "type": "route",
+        "href": "/#vendor-ms2"
+      },
+      "terms": [
+        "trusted-issuer",
+        "attribute-mapping"
+      ],
+      "story": "S08"
+    },
+    {
+      "id": "concept-exchange",
+      "label": "Token exchange with a third-party actor token",
+      "description": "The four steps: define a trusted issuer, assign it, map claims, send the exchange. GUIDE and MEASURED, with UNVERIFIED where it is not confirmed.",
+      "group": "concept",
+      "action": {
+        "type": "route",
+        "href": "/#exchange"
+      },
+      "terms": [
+        "token-exchange",
+        "clock-skew"
+      ]
+    },
+    {
+      "id": "concept-setup",
+      "label": "Setup guide",
+      "description": "The setup guide with measured error texts and expressions.",
+      "group": "concept",
+      "action": {
+        "type": "route",
+        "href": "/#setup"
+      },
+      "terms": [
+        "trusted-issuer"
+      ]
+    },
+    {
+      "id": "ref-doctor",
+      "label": "Doctor and health",
+      "description": "Preflight checks and the demo-health/1 endpoint.",
+      "group": "setup",
+      "action": {
+        "type": "route",
+        "href": "/api/health"
+      }
+    }
+  ],
+  "stories": [
+    {
+      "id": "S01",
+      "title": "PingFederate: client credentials",
+      "say": "Token 2 of the guide's sample A. A machine identity: the agent app's own PingFederate token. No iat or nbf, only exp. Turn on nbf required and watch which issuers PingOne refuses."
+    },
+    {
+      "id": "S02",
+      "title": "PingFederate: ID token",
+      "say": "Token 2 of the guide's sample B. A user ID token carrying a custom securityLevel claim. Turn on nbf required and watch which issuers PingOne refuses."
+    },
+    {
+      "id": "S03",
+      "title": "PingOne (another environment)",
+      "say": "The comparison sheet column for a PingOne token from a different environment. Claim set taken from the sheet and the guide's PingOne token 1. Turn on nbf required and watch which issuers PingOne refuses."
+    },
+    {
+      "id": "S04",
+      "title": "Okta",
+      "say": "Okta access token. Application id is cid, scopes are scp, user id is uid. Has no nbf. Turn on nbf required and watch which issuers PingOne refuses."
+    },
+    {
+      "id": "S05",
+      "title": "Auth0",
+      "say": "Auth0 access token (its default profile). Application id is azp, no jti, no auth_time. Has no nbf. Turn on nbf required and watch which issuers PingOne refuses."
+    },
+    {
+      "id": "S06",
+      "title": "RFC 9068 (and Auth0 RFC 9068 profile)",
+      "say": "The standard JWT access-token profile. Required: iss, exp, aud, sub, client_id, iat, jti. Auth0 can issue this shape too. Turn on nbf required and watch which issuers PingOne refuses."
+    },
+    {
+      "id": "S07",
+      "title": "Microsoft v1.0",
+      "say": "Entra ID v1.0 access token. Application id is appid, user object id is oid, jti is uti. Has iat, nbf and exp. Turn on nbf required and watch which issuers PingOne refuses."
+    },
+    {
+      "id": "S08",
+      "title": "Microsoft v2.0",
+      "say": "Entra ID v2.0 access token. Application id is azp, no amr, jti is uti. Has iat, nbf and exp. Turn on nbf required and watch which issuers PingOne refuses."
+    }
+  ]
+}
