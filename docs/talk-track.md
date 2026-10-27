@@ -8,7 +8,7 @@ Everything here is simulated. The tokens, the checks and the issued token are in
 
 ## What it does
 
-PingOne token exchange used to accept only tokens from the same environment. With this capability orders-app can present a PingOne user token as the subject and a JWT from another issuer as the actor, with actor_token_type urn:ietf:params:oauth:token-type:jwt. The guide labels this GUIDE; the exact request and the errors are UNVERIFIED.
+PingOne token exchange used to accept only tokens from the same environment. With this capability orders-app can present a PingOne user token as the subject and a JWT from another issuer as the actor, with actor_token_type urn:ietf:params:oauth:token-type:jwt. The guide says so (GUIDE); the request shape and the PingOne error texts we show were MEASURED live on 2026-10-27, and the order PingOne evaluates checks in is UNVERIFIED.
 
 ## Four steps
 
@@ -16,7 +16,7 @@ Define a trusted issuer, assign it to an OIDC non-worker application, map claims
 
 ## The nbf trap
 
-Pick Okta and turn on nbf required: it is refused, because an Okta token has no nbf. Pick Microsoft and it passes, because Entra tokens carry nbf. The same switch, a different answer, decided by the third-party token.
+Pick Okta and turn on nbf required: it is refused with the text PingOne returns (Missing nbf claim), because an Okta token has no nbf. Pick Microsoft and it passes, because Entra tokens carry nbf. The same switch, a different answer, decided by the third-party token.
 
 ## Claim mapping
 
@@ -24,7 +24,7 @@ The attribute mapping on the custom resource reads a claim from the actor token.
 
 ## What we do not claim
 
-A third-party SUBJECT token is not simulated: the guide only shows actor tokens. The error responses and the refusal order are ours. maxFutureValidity and clockSkew are ignored.
+A third-party SUBJECT token is not simulated: the guide only shows actor tokens, and live it leaves the issued token with no sub. The refusal texts are what PingOne returned; the order it evaluates checks in when several things are wrong is UNVERIFIED. Clock skew (0 to 60 seconds) and maximum future validity are simulated as measured.
 
 ## Close
 

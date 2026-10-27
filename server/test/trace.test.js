@@ -25,7 +25,7 @@ test('one trace id, a distinct valid span id per hop, mock text carries the trac
   assert.match(ok[1].response, /200/);
   const refused = buildHops({ trace: newTrace(GOOD), run: runOf({ vendorId: 'okta', settings: { nbfRequired: true } }) });
   assert.equal(refused.length, 3, 'no mapping hop when refused');
-  assert.match(refused[1].response, /HTTP 400 \(MOCK, UNVERIFIED\)/);
+  assert.match(refused[1].response, /HTTP 400 \(error text MEASURED live; mock response\)[\s\S]*invalid_request[\s\S]*Missing nbf claim/);
   assert.equal(formatTraceparent('a'.repeat(32), 'b'.repeat(16)), `00-${'a'.repeat(32)}-${'b'.repeat(16)}-01`);
 });
 

@@ -1,18 +1,18 @@
 // Pure logic of the mock: no I/O, no clocks (the caller passes `now`), no eval. Hostile input is bounded and walked
-// iteratively (Node 22 has a small stack). The checks and their settings come from the GUIDE; the ORDER of the checks and
-// the refusal wording are ours (UNVERIFIED): the guide describes no error responses.
+// iteratively (Node 22 has a small stack). The checks and their settings come from the GUIDE; the refusal texts were MEASURED
+// live against PingOne (2026-10-27) and are copied here; the ORDER of the checks is ours (UNVERIFIED).
 import { Buffer } from 'node:buffer';
 import { fill } from './cast.js';
 import { cleanText } from './safety.js';
 import {
-  ACCESS_TYPE, APP_CLIENT_ID, GRANT_TYPE, JWT_TYPE, P1_ISSUER, P1_TOKEN_URL, RESOURCE_AUD, RESOURCE_SCOPE, TOKEN_STATES,
+  ACCESS_TYPE, APP_CLIENT_ID, GRANT_TYPE, JWT_TYPE, MAX_CLOCK_SKEW, MAX_FUTURE_VALIDITY_LIMIT, P1_ISSUER, P1_TOKEN_URL, RESOURCE_AUD, RESOURCE_SCOPE, TOKEN_STATES,
   TRUSTED_ISSUER_DEFAULTS, VENDORS, subjectClaims,
 } from './exchangeData.js';
 
 export const LIMITS = { depth: 4, nodes: 60, string: 500, audiences: 8, audience: 120, audiencesText: 600, query: 12 };
 const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const TOP_KEYS = new Set(['vendorId', 'tokenState', 'settings', 'assigned']);
-const SETTING_KEYS = new Set(['expRequired', 'iatRequired', 'nbfRequired', 'audiences']);
+const SETTING_KEYS = new Set(['expRequired', 'iatRequired', 'nbfRequired', 'audiences', 'clockSkew', 'maxFutureValidity']);
 
 export class ExchangeInputError extends Error {
   constructor(code, detail) { super(detail); this.code = code; }
@@ -45,6 +45,11 @@ const bool = (v, name) => {
   return v;
 };
 
+const int = (v, name, max) => {
+  if (!Number.isInteger(v) || v < 0 || v > max) throw new ExchangeInputError('bad_setting', `${name} must be a whole number from 0 to ${max}`);
+  return v;
+};
+
 export function parseAudiences(text) {
   const list = String(text).split(',').map((s) => cleanText(s, LIMITS.audience)).filter(Boolean);
   if (list.length > LIMITS.audiences) throw new ExchangeInputError('too_many', `at most ${LIMITS.audiences} audiences`);
@@ -72,6 +77,8 @@ export function normalizeInput(raw) {
     iatRequired: s.iatRequired === undefined ? d.iatRequired : bool(s.iatRequired, 'iatRequired'),
     nbfRequired: s.nbfRequired === undefined ? d.nbfRequired : bool(s.nbfRequired, 'nbfRequired'),
     audiences: parseAudiences(audiencesText),
+    clockSkew: s.clockSkew === undefined ? d.clockSkew : int(s.clockSkew, 'clockSkew', MAX_CLOCK_SKEW),
+    maxFutureValidity: s.maxFutureValidity === undefined ? d.maxFutureValidity : int(s.maxFutureValidity, 'maxFutureValidity', MAX_FUTURE_VALIDITY_LIMIT),
   };
   const assigned = raw.assigned === undefined ? true : bool(raw.assigned, 'assigned');
   return { vendor, state: stateId, settings, assigned };
@@ -80,13 +87,14 @@ export function normalizeInput(raw) {
 /** GET query strings are all text: true/false become booleans, then the same validation as the body. */
 export function inputFromQuery(q) {
   if (!isObj(q)) throw new ExchangeInputError('bad_request', 'bad query');
-  const known = ['vendorId', 'tokenState', 'expRequired', 'iatRequired', 'nbfRequired', 'audiences', 'assigned', 'vertical'];
+  const known = ['vendorId', 'tokenState', 'expRequired', 'iatRequired', 'nbfRequired', 'audiences', 'clockSkew', 'maxFutureValidity', 'assigned', 'vertical'];
   for (const k of Object.keys(q)) if (!known.includes(k)) throw new ExchangeInputError('unknown_field', `unknown query field ${cleanText(k, 30)}`);
   for (const k of known) if (q[k] !== undefined && typeof q[k] !== 'string') throw new ExchangeInputError('bad_request', `${k} must be text`);
   const b = (name) => (q[name] === undefined ? undefined : q[name] === 'true' ? true : q[name] === 'false' ? false : q[name]);
   const settings = {};
   for (const k of ['expRequired', 'iatRequired', 'nbfRequired']) if (q[k] !== undefined) settings[k] = b(k);
   if (q.audiences !== undefined) settings.audiences = q.audiences;
+  for (const k of ['clockSkew', 'maxFutureValidity']) if (q[k] !== undefined) settings[k] = /^\d{1,10}$/.test(q[k]) ? Number(q[k]) : q[k];
   const body = { vendorId: q.vendorId, settings };
   if (q.tokenState !== undefined) body.tokenState = q.tokenState;
   if (q.assigned !== undefined) body.assigned = b('assigned');
@@ -103,21 +111,28 @@ export function stateClaims(vendor, state, now) {
   return c;
 }
 
+// Every `message` is the text PingOne returned when the same case was run live on 2026-10-27 (HTTP 400, invalid_request);
+// this app only copies it. The ORDER PingOne evaluates the checks in is UNVERIFIED: only one fault at a time was tested.
+const P1_ERROR_PREFIX = 'The request could not be completed. The request was malformed or invalid.: ';
+
 export function validateExchange({ vendor, state, settings, assigned, now }) {
   const claims = stateClaims(vendor, state, now);
   const aud = audList(claims.aud);
   const wanted = settings.audiences;
+  const skew = Math.min(Math.max(settings.clockSkew || 0, 0), MAX_CLOCK_SKEW);
+  const maxFuture = Math.max(settings.maxFutureValidity || 0, 0);
   const checks = [
-    { id: 'assigned', label: 'Trusted issuer is assigned to the application', ok: assigned, detail: assigned ? 'assigned' : 'not assigned to the calling application' },
-    { id: 'issuer', label: 'iss equals the trusted issuer', ok: claims.iss === vendor.issuer, detail: `token iss: ${claims.iss}` },
-    { id: 'signature', label: 'Signature verifies against the issuer JWKS', ok: state !== 'bad-signature', detail: state === 'bad-signature' ? 'signature does not match any key in the JWKS' : 'verified against JWKS (mock)' },
-    { id: 'exp', label: settings.expRequired ? 'exp present and not past' : 'exp not required', ok: settings.expRequired ? claims.exp !== undefined && claims.exp > now : claims.exp === undefined || claims.exp > now, detail: claims.exp === undefined ? 'token has no exp' : claims.exp > now ? 'in the future' : 'in the past' },
-    { id: 'iat', label: settings.iatRequired ? 'iat present' : 'iat not required', ok: !settings.iatRequired || claims.iat !== undefined, detail: claims.iat === undefined ? 'token has no iat' : 'present' },
-    { id: 'nbf', label: settings.nbfRequired ? 'nbf present and reached' : 'nbf not required', ok: !settings.nbfRequired || (claims.nbf !== undefined && claims.nbf <= now), detail: claims.nbf === undefined ? 'token has no nbf' : 'present' },
-    { id: 'aud', label: wanted.length ? 'aud has one of the trusted audiences' : 'Trusted audiences blank: any aud accepted', ok: !wanted.length || aud.some((a) => wanted.includes(a)), detail: `token aud: ${aud.length ? aud.join(', ') : 'none'}` },
+    { id: 'assigned', label: 'Trusted issuer is assigned to the application', ok: assigned, detail: assigned ? 'assigned' : 'not assigned to the calling application', message: 'The token issuer does not match any Trusted Issuer for the requesting application' },
+    { id: 'issuer', label: 'iss equals the trusted issuer', ok: claims.iss === vendor.issuer, detail: `token iss: ${claims.iss}`, message: 'The token issuer does not match any Trusted Issuer assigned to the application' },
+    { id: 'signature', label: 'Signature verifies against the issuer JWKS', ok: state !== 'bad-signature', detail: state === 'bad-signature' ? 'signature does not match any key in the JWKS' : 'verified against JWKS (mock)', message: 'JWT signature verification failed' },
+    { id: 'exp', label: settings.expRequired ? 'exp present and not past' : 'exp not required', ok: claims.exp === undefined ? !settings.expRequired : claims.exp > now - skew, detail: claims.exp === undefined ? 'token has no exp' : claims.exp > now - skew ? 'in the future' : 'in the past', message: claims.exp === undefined ? 'Missing exp claim; the Trusted Issuer requires an expiration time' : 'The provided JWT has expired' },
+    { id: 'maxfuture', label: maxFuture ? `exp no more than ${maxFuture}s ahead` : 'maximum future validity off', ok: !maxFuture || claims.exp === undefined || claims.exp - now <= maxFuture, detail: claims.exp === undefined ? 'no exp' : `exp is ${claims.exp - now}s ahead`, message: 'The exp claim exceeds the maximum allowed future validity' },
+    { id: 'iat', label: settings.iatRequired ? 'iat present' : 'iat not required', ok: !settings.iatRequired || claims.iat !== undefined, detail: claims.iat === undefined ? 'token has no iat' : 'present', message: 'Missing iat claim; the Trusted Issuer requires an issued-at time' },
+    { id: 'nbf', label: settings.nbfRequired ? 'nbf present and reached' : 'nbf not required', ok: claims.nbf === undefined ? !settings.nbfRequired : claims.nbf <= now + skew, detail: claims.nbf === undefined ? 'token has no nbf' : 'present', message: claims.nbf === undefined ? 'Missing nbf claim; the Trusted Issuer requires a not-before time' : 'The nbf claim is in the future beyond the allowed clock skew' },
+    { id: 'aud', label: wanted.length ? 'aud has one of the trusted audiences' : 'Trusted audiences blank: any aud accepted', ok: !wanted.length || aud.some((a) => wanted.includes(a)), detail: `token aud: ${aud.length ? aud.join(', ') : 'none'}`, message: "None of the token's aud values match the Trusted Issuer's configured audiences" },
   ];
   const failed = checks.find((c) => !c.ok) || null;
-  return { claims, checks, ok: !failed, failed };
+  return { claims, checks, ok: !failed, failed, error: failed ? { status: 400, error: 'invalid_request', error_description: P1_ERROR_PREFIX + failed.message } : null };
 }
 
 /** Run a mapping against the actor token claims. A source claim the vendor does not issue adds nothing. */
@@ -146,7 +161,7 @@ export function requestText(cast) {
     'actor_token=<third-party JWT>',
     `actor_token_type=${JWT_TYPE}`,
     `scope=${RESOURCE_SCOPE}`,
-    `(client authentication: as for any PingOne token request, for the application ${cast.castApp}, client_id ${APP_CLIENT_ID})`,
+    `(client authentication: the application's client id and secret, HTTP Basic, as for any PingOne token request; application ${cast.castApp}, client_id ${APP_CLIENT_ID})`,
   ].join('\n');
 }
 
@@ -178,8 +193,8 @@ export function runExchange(input, { now, cast }) {
     actor: run.claims,
     mapping,
     issued,
-    // The refusal is OUR mock (UNVERIFIED): the guide describes no error responses.
-    refusal: run.ok ? null : { status: 400, body: { error: 'invalid_request', error_description: `MOCK: ${run.failed.label}` } },
+    // PingOne's real refusal text, MEASURED live 2026-10-27 (copied, not fetched). The body is a mock of the response, not a live one.
+    error: run.error,
     jwtLabel: 'MOCK JWT: unsigned, never verifiable',
     jwts: { subject: mockJwt(subject), actor: mockJwt(run.claims), issued: issued ? mockJwt(issued) : null },
   };

@@ -41,7 +41,7 @@ export function dynamicValues(run) {
     issuedJson: run.issued ? json(run.issued) : '(nothing issued)',
     failedLabel: run.failed ? run.failed.label : '',
     failedDetail: run.failed ? run.failed.detail : '',
-    refusalJson: run.refusal ? json(run.refusal) : '',
+    refusalJson: run.error ? json(run.error) : '',
   };
 }
 

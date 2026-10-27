@@ -129,7 +129,7 @@
     },
     {
       "title": "Token exchange request",
-      "what": "{{castApp}} sends the RFC 8693 exchange with actor_token_type urn:ietf:params:oauth:token-type:jwt. The exact request is UNVERIFIED (the guide shows it as an image).",
+      "what": "{{castApp}} sends the RFC 8693 exchange with actor_token_type urn:ietf:params:oauth:token-type:jwt. The request shape was MEASURED live against PingOne on 2026-10-27 (the guide shows it only as an image).",
       "why": "{{requestText}}",
       "edges": [
         3

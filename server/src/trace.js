@@ -21,7 +21,7 @@ export function newTrace(incoming, rand = randomBytes) {
 }
 
 // The mock hops of one exchange, with the raw request and response text of each. Nothing is sent: these are the panes
-// the UI shows. Hosts end in .example. The refusal status and body are OUR mock (UNVERIFIED): the guide describes no errors.
+// the UI shows. Hosts end in .example. The refusal status and body are the real PingOne text, MEASURED live 2026-10-27.
 export function buildHops({ trace, run }) {
   const vendorHost = new URL(run.vendor.issuer).host;
   const jwks = `GET ${new URL(run.vendor.issuer).origin}/<JWKS URL of the trusted issuer>`;
@@ -31,7 +31,7 @@ export function buildHops({ trace, run }) {
       response: () => `actor token (JWT) from ${run.vendor.name}\nstate: ${run.tokenState}` },
     { from: 'app', to: 'p1', label: 'Application sends the token exchange to PingOne',
       request: (tp) => `${run.request}\ntraceparent: ${tp}`,
-      response: () => (run.ok ? `HTTP 200 (see the issued token)` : `HTTP ${run.refusal.status} (MOCK, UNVERIFIED)\n${JSON.stringify(run.refusal.body)}`) },
+      response: () => (run.ok ? `HTTP 200 (see the issued token)` : `HTTP ${run.error.status} (error text MEASURED live; mock response)\n${JSON.stringify(run.error)}`) },
     { from: 'p1', to: 'vendor', label: 'PingOne fetches the trusted issuer JWKS (mock, in process)',
       request: (tp) => `${jwks}\ntraceparent: ${tp}`,
       response: () => `JWKS of ${run.vendor.issuer} (mock)` },

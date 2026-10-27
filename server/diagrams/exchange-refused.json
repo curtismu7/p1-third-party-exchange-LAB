@@ -2,7 +2,7 @@
   "schema": "diagram-studio/1",
   "id": "exchange-refused",
   "title": "Token exchange with a third-party actor token: refused",
-  "lede": "{{castApp}} exchanges a PingOne user token plus a {{vendorName}} token. The check '{{failedLabel}}' fails, so PingOne refuses and issues nothing. Mock only. The refusal wording is UNVERIFIED: the guide describes no error responses.",
+  "lede": "{{castApp}} exchanges a PingOne user token plus a {{vendorName}} token. The check '{{failedLabel}}' fails, so PingOne refuses and issues nothing. Mock only. The refusal text is what PingOne returned when we measured it live (2026-10-27); the order PingOne evaluates checks in is UNVERIFIED.",
   "groups": {
     "actor": {
       "label": "Application",
@@ -118,7 +118,7 @@
     },
     {
       "title": "Token exchange request",
-      "what": "{{castApp}} sends the RFC 8693 exchange with actor_token_type urn:ietf:params:oauth:token-type:jwt. The exact request is UNVERIFIED (the guide shows it as an image).",
+      "what": "{{castApp}} sends the RFC 8693 exchange with actor_token_type urn:ietf:params:oauth:token-type:jwt. The request shape was MEASURED live against PingOne on 2026-10-27 (the guide shows it only as an image).",
       "why": "{{requestText}}",
       "edges": [
         3
@@ -142,7 +142,7 @@
     },
     {
       "title": "Refused: {{failedLabel}}",
-      "what": "The check '{{failedLabel}}' failed ({{failedDetail}}). No token is issued. The error response is our mock; the guide describes none (UNVERIFIED).",
+      "what": "The check '{{failedLabel}}' failed ({{failedDetail}}). No token is issued. The error text is PingOne's own, MEASURED live (HTTP 400, invalid_request); the order of checks when several fail is UNVERIFIED.",
       "why": "{{refusalJson}}",
       "edges": [
         6

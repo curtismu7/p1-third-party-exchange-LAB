@@ -12,6 +12,7 @@ export const TITLE = 'PingOne token exchange with third-party tokens';
 export const INTRO = 'PingOne can trust a JWT signed by another issuer (PingFederate, Okta, Auth0, Microsoft, another PingOne environment) and accept it as the actor token in an RFC 8693 token exchange. Claims from that token can then be mapped into the access token PingOne issues. Pick an issuer, change the trusted-issuer settings and see which check decides.';
 
 export const EVIDENCE = {
+  measured: { label: 'MEASURED', note: 'Run live against a PingOne environment (North America) on 2026-10-27, with a trusted issuer whose key we generated ourselves. Exact error text is what PingOne returned. This app itself makes no live call.' },
   guide: { label: 'GUIDE', note: "Stated in Ping's UAT guide (23 Oct 2026)." },
   sample: { label: 'SAMPLE', note: "A vendor's published sample token or the comparison sheet. Ids, hosts and times are placeholders." },
   derived: { label: 'OUR CHOICE', note: 'Our illustration of how a mapping could look. Not from the guide.' },
@@ -44,7 +45,7 @@ export const VENDORS = [
     note: "Token 2 of the guide's sample A. A machine identity: the agent app's own PingFederate token. No iat or nbf, only exp.",
     claims: (now) => ({ jatm_scope: '', jatm_client_id: 'cc_client', iss: 'https://pf.vendor.example:9031', aud: 'cc_client', jti: 'mock-jti-pf-cc', sub: 'cc_client', subj: 'PF admin maps what PF admin wants', exp: now + 3600 }),
     mappings: [
-      { id: 'act', label: 'act.sub from the actor token sub', target: 'act', source: 'sub', wrap: 'act', evidence: 'guide', note: "Guide sample A: the actor token's sub becomes the act claim of the resulting token." },
+      { id: 'act', label: 'act.sub from the actor token sub', target: 'act', source: 'sub', wrap: 'act', evidence: 'measured', note: "Guide sample A, reproduced live. Expression on the resource: ${{'sub': #root.context.requestData.actorToken.sub}}. A client-credentials token with no actor gets act.sub null, so expect that on tokens issued without an actor." },
     ],
   },
   {
@@ -52,7 +53,7 @@ export const VENDORS = [
     note: "Token 2 of the guide's sample B. A user ID token carrying a custom securityLevel claim.",
     claims: (now) => ({ sub: 'jsmith', aud: 'oic_client', jti: 'mock-jti-pf-id', iss: 'https://pf.vendor.example:9031', iat: now - 60, exp: now + 3540, sid: 'mock-sid', amr: ['oidcPolicy'], auth_time: now - 60, acr: 'oidcPolicy', securityLevel: 'Class 3' }),
     mappings: [
-      { id: 'sec', label: 'security from the securityLevel claim', target: 'security', source: 'securityLevel', evidence: 'guide', note: 'Guide sample B: securityLevel on the actor token becomes security on the resulting token. The guide also shows bestie = jsmith, from the same sample.' },
+      { id: 'sec', label: 'security from the securityLevel claim', target: 'security', source: 'securityLevel', evidence: 'measured', note: 'Guide sample B, reproduced live. Expression: ${#root.context.requestData.actorToken.securityLevel}. If the actor token has no such claim, PingOne leaves the attribute out and still issues the token (measured).' },
     ],
   },
   {
@@ -93,8 +94,12 @@ export const VENDORS = [
   },
 ];
 
-// Trusted issuer fields from the guide's admin API sample. maxFutureValidity exists but the guide does not say how it acts.
-export const TRUSTED_ISSUER_DEFAULTS = { expRequired: true, iatRequired: false, nbfRequired: false, audiences: '' };
+// Trusted issuer fields from the guide's admin API sample.
+// clockSkew (seconds, MEASURED: PingOne rejects more than 60) loosens exp and nbf. maxFutureValidity (seconds, 0 = no limit,
+// MEASURED) refuses an exp that is further ahead than that. Both are in the guide's API sample (value 0) but unexplained there.
+export const TRUSTED_ISSUER_DEFAULTS = { expRequired: true, iatRequired: false, nbfRequired: false, audiences: '', clockSkew: 0, maxFutureValidity: 0 };
+export const MAX_CLOCK_SKEW = 60;
+export const MAX_FUTURE_VALIDITY_LIMIT = 31536000;
 
 export const TOKEN_STATES = [
   { id: 'valid', label: 'Valid' },
@@ -120,14 +125,16 @@ export const ADMIN_FACTS = [
   ['Permissions: assignments', 'applications:create|read|update|delete:trustedIssuerAssignment, same role split.'],
   ['Audit and webhook events', 'Trusted Issuer and Trusted Issuer Assignment, each with Created, Read, Update, Delete (eight events).'],
   ['License packages (any one)', 'TRIAL, ENHANCED TRIAL, AGENT IAM CORE, WORKFORCE PLUS, WORKFORCE PREMIUM, CIAM PLUS, CIAM PASSWORDLESS, CIAM PREMIUM. Four internal packages also have it.'],
+  ['Measured limits (2026-10-27)', 'clockSkew is in seconds and PingOne rejects more than 60 (it loosens exp and nbf). maxFutureValidity is in seconds, 0 means no limit, and refuses an exp further ahead than that. Inline JWKS is the jwks field, a JSON string.'],
   ['Coming soon (per the guide)', 'Trusted issuer assignments to AI agents, and configuration management and promotion.'],
 ];
 
 export const NOT_SHOWN = [
   'Third-party token as the SUBJECT token. The guide says it is accepted, but its two samples only use a third-party actor token, so this app does not simulate it and does not guess what the issued sub becomes.',
-  'The exact token request and the error responses. The guide shows the requests as images and describes no errors. The request here follows RFC 8693; the refusal wording is ours.',
-  'The feature flag name and which environments have it. The guide says the capability is being added ("in the future") and gives no flag name.',
-  'maxFutureValidity and clockSkew. They appear in the admin API response (both 0) but the guide does not say how they act, so the mock ignores them.',
+  'The order PingOne evaluates the checks in. Each refusal text is real, but when two things are wrong at once PingOne may name a different one first. We tested one fault at a time.',
+  'A third-party JWT as the SUBJECT token. PingOne accepts it (measured), and you can map its claims with subjectToken, but the issued token then has no sub of its own. This app simulates the actor case only.',
+  'A signed-in USER as the subject. Our live runs used a client-credentials PingOne access token as the subject, because a user sign-in needs a browser.',
+  'The feature flag name (the guide gives no flag name); the flag was on in the environment we tested.',
 ];
 
 // Comparison sheet (claims each issuer puts in its access token). null = "Not included" / "Not defined" on the sheet.
@@ -158,10 +165,10 @@ export const COMPARE_NOTE = "From the comparison sheet. A dash means the sheet s
 // The talk track, as data, so the web talk-track view and presenter mode read the same words as docs/talk-track.md.
 export const TALK_TRACK = [
   { id: 'say-first', title: 'Say first', say: 'Everything here is simulated. The tokens, the checks and the issued token are invented by this app. The capability is behind a feature flag and the guide gives no flag name, so check with Ping that it is on in your environment. {{castBrand}} is a made-up customer.' },
-  { id: 'what', title: 'What it does', say: 'PingOne token exchange used to accept only tokens from the same environment. With this capability {{castApp}} can present a PingOne user token as the subject and a JWT from another issuer as the actor, with actor_token_type urn:ietf:params:oauth:token-type:jwt. The guide labels this GUIDE; the exact request and the errors are UNVERIFIED.' },
+  { id: 'what', title: 'What it does', say: 'PingOne token exchange used to accept only tokens from the same environment. With this capability {{castApp}} can present a PingOne user token as the subject and a JWT from another issuer as the actor, with actor_token_type urn:ietf:params:oauth:token-type:jwt. The guide says so (GUIDE); the request shape and the PingOne error texts we show were MEASURED live on 2026-10-27, and the order PingOne evaluates checks in is UNVERIFIED.' },
   { id: 'setup', title: 'Four steps', say: 'Define a trusted issuer, assign it to an OIDC non-worker application, map claims on the custom resource {{castResource}}, then send the exchange. The Setup guide tab has the same steps with every GUIDE and UNVERIFIED label.' },
-  { id: 'nbf', title: 'The nbf trap', say: 'Pick Okta and turn on nbf required: it is refused, because an Okta token has no nbf. Pick Microsoft and it passes, because Entra tokens carry nbf. The same switch, a different answer, decided by the third-party token.' },
+  { id: 'nbf', title: 'The nbf trap', say: 'Pick Okta and turn on nbf required: it is refused with the text PingOne returns (Missing nbf claim), because an Okta token has no nbf. Pick Microsoft and it passes, because Entra tokens carry nbf. The same switch, a different answer, decided by the third-party token.' },
   { id: 'mapping', title: 'Claim mapping', say: 'The attribute mapping on the custom resource reads a claim from the actor token. Each vendor names the calling application differently: client_id, azp, cid or appid. If the source claim is absent, the mapped claim is simply missing from the issued token.' },
-  { id: 'limits', title: 'What we do not claim', say: 'A third-party SUBJECT token is not simulated: the guide only shows actor tokens. The error responses and the refusal order are ours. maxFutureValidity and clockSkew are ignored.' },
+  { id: 'limits', title: 'What we do not claim', say: 'A third-party SUBJECT token is not simulated: the guide only shows actor tokens, and live it leaves the issued token with no sub. The refusal texts are what PingOne returned; the order it evaluates checks in when several things are wrong is UNVERIFIED. Clock skew (0 to 60 seconds) and maximum future validity are simulated as measured.' },
   { id: 'close', title: 'Close', say: 'Reset clears your workspace and puts the diagram back. Nothing was sent anywhere.' },
 ];

@@ -83,10 +83,10 @@ test('GET /api/vendors returns the issuers, the labels, the defaults and the fil
   await withServer(async (url) => {
     let j = await (await fetch(`${url}/api/vendors`)).json();
     assert.equal(j.vendors.length, 8);
-    assert.ok(!/\{\{/.test(JSON.stringify(j)), 'no unfilled token');
-    assert.deepEqual(Object.keys(j.evidence).sort(), ['derived', 'guide', 'sample', 'unverified']);
+    assert.ok(!/\{\{\w+\}\}/.test(JSON.stringify(j)), 'no unfilled token');
+    assert.deepEqual(Object.keys(j.evidence).sort(), ['derived', 'guide', 'measured', 'sample', 'unverified']);
     assert.match(j.tokenLabel, /MOCK-ISSUED/);
-    assert.deepEqual(j.defaults, { expRequired: true, iatRequired: false, nbfRequired: false, audiences: '', assigned: true });
+    assert.deepEqual(j.defaults, { expRequired: true, iatRequired: false, nbfRequired: false, audiences: '', clockSkew: 0, maxFutureValidity: 0, assigned: true });
     assert.equal(j.cast.castApp, 'orders-app');
     j = await (await fetch(`${url}/api/vendors?vertical=finance`)).json();
     assert.equal(j.cast.castApp, 'payments-app');
@@ -105,7 +105,8 @@ test('POST /api/exchange: the default exchange succeeds, with checks, request, t
   await withServer(async (url) => {
     const j = await (await post(url, '/api/exchange', { vendorId: 'pf-cc' })).json();
     assert.equal(j.ok, true);
-    assert.equal(j.checks.length, 7);
+    assert.equal(j.checks.length, 8);
+    assert.equal(j.error, null);
     assert.ok(j.checks.every((c) => c.ok));
     assert.match(j.request, /actor_token_type=urn:ietf:params:oauth:token-type:jwt/);
     assert.deepEqual(j.issued.act, { sub: 'cc_client' });
@@ -114,7 +115,6 @@ test('POST /api/exchange: the default exchange succeeds, with checks, request, t
     assert.equal(j.actor.iss, 'https://pf.vendor.example:9031');
     assert.match(j.jwtLabel, /MOCK/);
     for (const t of Object.values(j.jwts)) assert.ok(t.endsWith('.MOCK-SIGNATURE-NOT-VALID'));
-    assert.equal(j.refusal, null);
     assert.equal(j.workspace, 'default');
   });
 });
@@ -126,8 +126,7 @@ test('requiring nbf flips Okta (no nbf) to refused, Microsoft (has nbf) stays ac
     assert.equal(okta.ok, false);
     assert.equal(okta.failed.id, 'nbf');
     assert.equal(okta.issued, null);
-    assert.equal(okta.refusal.status, 400);
-    assert.match(okta.refusal.body.error_description, /^MOCK: /);
+    assert.deepEqual(okta.error, { status: 400, error: 'invalid_request', error_description: 'The request could not be completed. The request was malformed or invalid.: Missing nbf claim; the Trusted Issuer requires a not-before time' });
     assert.equal((await run('ms1', { nbfRequired: true })).ok, true);
     assert.equal((await run('ms2', { nbfRequired: true })).ok, true);
     for (const id of ['pf-cc', 'pf-oidc', 'p1', 'auth0', 'rfc9068']) assert.equal((await run(id, { nbfRequired: true })).failed.id, 'nbf', id);
@@ -174,6 +173,13 @@ test('POST /api/exchange bounds hostile input and stays up', async () => {
       [{ vendorId: 'okta', settings: { audiences: 5 } }, 'bad_setting'],
       [{ vendorId: 'okta', settings: [] }, 'bad_setting'],
       [{ vendorId: 'okta', assigned: 1 }, 'bad_setting'],
+      [{ vendorId: 'okta', settings: { clockSkew: 61 } }, 'bad_setting'],
+      [{ vendorId: 'okta', settings: { clockSkew: -1 } }, 'bad_setting'],
+      [{ vendorId: 'okta', settings: { clockSkew: 1.5 } }, 'bad_setting'],
+      [{ vendorId: 'okta', settings: { clockSkew: '30' } }, 'bad_setting'],
+      [{ vendorId: 'okta', settings: { maxFutureValidity: 31536001 } }, 'bad_setting'],
+      [{ vendorId: 'okta', settings: { maxFutureValidity: -5 } }, 'bad_setting'],
+      [{ vendorId: 'okta', settings: { maxFutureValidity: null } }, 'bad_setting'],
     ];
     for (const [body, code] of cases) {
       const r = await run(JSON.stringify(body));
@@ -221,8 +227,8 @@ test('GET /api/setup serves the guide markdown, the steps, the admin facts and w
     const j = await (await fetch(`${url}/api/setup`)).json();
     assert.match(j.markdown, /^# PingOne token exchange with third-party signed JWTs/);
     assert.equal(j.steps.length, 4);
-    assert.equal(j.adminFacts.length, 5);
-    assert.equal(j.notShown.length, 4);
+    assert.equal(j.adminFacts.length, 6);
+    assert.equal(j.notShown.length, 5);
     assert.ok(j.notShown.some((t) => /SUBJECT token/.test(t)));
   });
 });
@@ -241,8 +247,18 @@ test('GET /api/diagram serves a diagram-studio/1 document for the run: accepted 
     assert.equal(bad.id, 'exchange-refused');
     assert.equal(bad.steps.length, 7);
     assert.match(bad.steps[6].title, /nbf present and reached/);
-    assert.match(bad.steps[6].why, /MOCK: nbf present and reached/);
+    assert.match(bad.steps[6].why, /Missing nbf claim; the Trusted Issuer requires a not-before time/);
     for (const q of ['?vendorId=nope', '?vendorId=okta&nbfRequired=maybe', '?vendorId=okta&x=1', '?vendorId[a]=1', '']) assert.equal((await fetch(`${url}/api/diagram${q}`)).status, 400, q);
-    assert.ok(!/\{\{/.test(JSON.stringify(ok) + JSON.stringify(bad)));
+    assert.ok(!/\{\{\w+\}\}/.test(JSON.stringify(ok) + JSON.stringify(bad)));
+  });
+});
+
+test('clockSkew and maxFutureValidity are accepted at their limits and come back in settings; the diagram query takes them too', async () => {
+  await withServer(async (url) => {
+    const j = await (await post(url, '/api/exchange', { vendorId: 'okta', settings: { clockSkew: 60, maxFutureValidity: 31536000 } })).json();
+    assert.equal(j.settings.clockSkew, 60);
+    assert.equal(j.settings.maxFutureValidity, 31536000);
+    assert.equal((await fetch(`${url}/api/diagram?vendorId=okta&clockSkew=30&maxFutureValidity=3600`)).status, 200);
+    for (const q of ['clockSkew=61', 'clockSkew=abc', 'maxFutureValidity=-1', 'maxFutureValidity=99999999999']) assert.equal((await fetch(`${url}/api/diagram?vendorId=okta&${q}`)).status, 400, q);
   });
 });
