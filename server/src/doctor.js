@@ -6,6 +6,8 @@ import { DEFAULT_CAST, VERTICALS, fillDeep, unfilled } from './cast.js';
 import * as D from './exchangeData.js';
 import { normalizeInput, runExchange } from './exchange.js';
 import { modeFrom } from './config.js';
+import { liveGate } from './live/gate.js';
+import { createLiveSettings, defaultShareDir } from './live/settings.js';
 import { DIAGRAM_NAMES, DYNAMIC_KEYS, buildDiagram, rawDiagram } from './diagramData.js';
 import { readSetupMarkdown } from './setup.js';
 import { verifyJwt } from './jwt.js';
@@ -61,8 +63,22 @@ export async function runChecks({ env = process.env, cast = DEFAULT_CAST } = {})
   const major = Number(process.versions.node.split('.')[0]);
   add('node', major >= 20 ? 'pass' : 'fail', `v${process.versions.node} (need >= 20)`);
 
-  try { add('mode', 'pass', `MODE=${modeFrom(env)} (the only mode this app has${env.P1TPX_HOSTED === '1' ? '; hosted build' : ''})`); }
+  try { add('mode', 'pass', `MODE=${modeFrom(env)}${env.P1TPX_HOSTED === '1' ? ' (hosted build)' : ''}`); }
   catch (e) { add('mode', 'fail', e.message); }
+
+  // LIVE mode (owner-run). Normally off. When MODE=live is requested, every gate must pass and the saved settings must be complete.
+  const g = liveGate(env, { hosted: env.P1TPX_HOSTED === '1' });
+  if (!g.requested) add('live', 'pass', 'live: off (mock only; no PingOne call is possible)');
+  else if (!g.allowed) add('live', 'fail', `MODE=live was requested but is refused: ${g.reasons.join('; ')}`);
+  else {
+    const st = createLiveSettings({ shareDir: defaultShareDir(env) });
+    const v = st.get();
+    const any = Boolean(v.environmentId || v.clientId || v.clientSecret);
+    const bad = any && !st.configured();
+    if (st.configured()) add('live', 'pass', `live: ON, settings saved in ${st.file} (the secret is set; it is never printed). Writes to a real PingOne environment.`);
+    else if (bad) add('live', 'fail', `the saved live settings are incomplete or invalid (environment id UUID, region, worker client id, worker secret) in ${st.file}`);
+    else add('live', 'info', `live: ON, no settings saved yet: enter them on the Live tab (they go to ${st.file}, mode 600)`);
+  }
 
   try { add('bind', 'pass', `${assertBindAllowed(bindHost(env), env)}${env.P1TPX_BIND ? ' (P1TPX_BIND opt-in)' : ' (loopback)'}`); }
   catch (e) { add('bind', 'fail', e.message); }

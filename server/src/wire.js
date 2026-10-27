@@ -27,7 +27,7 @@ const UA = 'p1-third-party-exchange-mock/0.1';
 const basic = (id, secret) => `Basic ${Buffer.from(`${id}:${secret}`).toString('base64')}`;
 const form = (pairs) => pairs.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
 const q = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
-const STATUS = { 200: 'OK', 201: 'Created', 204: 'No Content', 400: 'Bad Request' };
+const STATUS = { 200: 'OK', 201: 'Created', 204: 'No Content', 400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found' };
 
 export function curlOf({ method, url, requestHeaders, requestBody }) {
   const lines = [`curl -i -X ${method} ${q(url)}`];
@@ -39,10 +39,12 @@ export function curlOf({ method, url, requestHeaders, requestBody }) {
 const pretty = (raw) => { try { return JSON.stringify(JSON.parse(raw), null, 2); } catch { return raw; } };
 
 /** One fully described call. `req.headers` / `res.headers` are [name, value] pairs in wire order; Host, Content-Length and Date are added here. */
-export function makeItem({ n, id, key, label, phase, method, url, reqHeaders, requestBody = '', status, resHeaders, responseBody = '', notes, evidence = 'measured', now }) {
+export function makeItem({ n, id, key, label, phase, method, url, reqHeaders, requestBody = '', status, resHeaders, responseBody = '', notes, evidence = 'measured', now, raw = false }) {
   const u = new URL(url);
+  // raw: a captured call (live mode). The headers are exactly what was sent and received (minus redactions); Host and Content-Length
+  // of the request are added, and nothing is invented for the response.
   const requestHeaders = [['Host', u.host], ...reqHeaders, ...(requestBody ? [['Content-Length', String(Buffer.byteLength(requestBody))]] : [])].map(([name, value]) => ({ name, value }));
-  const responseHeaders = [['Date', new Date(now * 1000).toUTCString()], ...resHeaders, ...(responseBody ? [['Content-Length', String(Buffer.byteLength(responseBody))]] : [])].map(([name, value]) => ({ name, value }));
+  const responseHeaders = (raw ? resHeaders : [['Date', new Date(now * 1000).toUTCString()], ...resHeaders, ...(responseBody ? [['Content-Length', String(Buffer.byteLength(responseBody))]] : [])]).map(([name, value]) => ({ name, value }));
   const statusText = STATUS[status] || 'Status';
   const requestBodyPretty = pretty(requestBody);
   const responseBodyPretty = pretty(responseBody);

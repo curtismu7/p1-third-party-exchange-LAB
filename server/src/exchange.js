@@ -115,7 +115,23 @@ export function stateClaims(vendor, state, now) {
 
 // Every `message` is the text PingOne returned when the same case was run live on 2026-10-27 (HTTP 400, invalid_request);
 // this app only copies it. The ORDER PingOne evaluates the checks in is UNVERIFIED: only one fault at a time was tested.
-const P1_ERROR_PREFIX = 'The request could not be completed. The request was malformed or invalid.: ';
+export const P1_ERROR_PREFIX = 'The request could not be completed. The request was malformed or invalid.: ';
+// The reason texts PingOne returned live (2026-10-27). One list, used by the mock's checks and by the stub PingOne of the live tests.
+export const MESSAGES = {
+  assigned: 'The token issuer does not match any Trusted Issuer for the requesting application',
+  issuer: 'The token issuer does not match any Trusted Issuer assigned to the application',
+  signature: 'JWT signature verification failed',
+  expMissing: 'Missing exp claim; the Trusted Issuer requires an expiration time',
+  expired: 'The provided JWT has expired',
+  maxfuture: 'The exp claim exceeds the maximum allowed future validity',
+  iat: 'Missing iat claim; the Trusted Issuer requires an issued-at time',
+  nbfMissing: 'Missing nbf claim; the Trusted Issuer requires a not-before time',
+  nbfFuture: 'The nbf claim is in the future beyond the allowed clock skew',
+  aud: "None of the token's aud values match the Trusted Issuer's configured audiences",
+  actorType: 'Provided token type must be urn:ietf:params:oauth:token-type:jwt',
+  actorTypeMissing: 'No value supplied for required parameter: actor_token_type',
+  clockSkewLimit: 'clockSkew must be less than or equal to 60',
+};
 
 export function validateExchange({ vendor, state, settings, assigned, now, signatureOk }) {
   // signatureOk: the result of REALLY verifying the actor JWT against the issuer JWKS (runExchange does it). Callers that have no JWT may omit it.
@@ -126,14 +142,14 @@ export function validateExchange({ vendor, state, settings, assigned, now, signa
   const skew = Math.min(Math.max(settings.clockSkew || 0, 0), MAX_CLOCK_SKEW);
   const maxFuture = Math.max(settings.maxFutureValidity || 0, 0);
   const checks = [
-    { id: 'assigned', label: 'Trusted issuer is assigned to the application', ok: assigned, detail: assigned ? 'assigned' : 'not assigned to the calling application', message: 'The token issuer does not match any Trusted Issuer for the requesting application' },
-    { id: 'issuer', label: 'iss equals the trusted issuer', ok: claims.iss === vendor.issuer, detail: `token iss: ${claims.iss}`, message: 'The token issuer does not match any Trusted Issuer assigned to the application' },
-    { id: 'signature', label: 'Signature verifies against the issuer JWKS', ok: sigOk, detail: sigOk ? 'verified against the JWKS (RS256, a real signature check)' : 'signature does not match any key in the JWKS', message: 'JWT signature verification failed' },
-    { id: 'exp', label: settings.expRequired ? 'exp present and not past' : 'exp not required', ok: claims.exp === undefined ? !settings.expRequired : claims.exp > now - skew, detail: claims.exp === undefined ? 'token has no exp' : claims.exp > now - skew ? 'in the future' : 'in the past', message: claims.exp === undefined ? 'Missing exp claim; the Trusted Issuer requires an expiration time' : 'The provided JWT has expired' },
-    { id: 'maxfuture', label: maxFuture ? `exp no more than ${maxFuture}s ahead` : 'maximum future validity off', ok: !maxFuture || claims.exp === undefined || claims.exp - now <= maxFuture, detail: claims.exp === undefined ? 'no exp' : `exp is ${claims.exp - now}s ahead`, message: 'The exp claim exceeds the maximum allowed future validity' },
-    { id: 'iat', label: settings.iatRequired ? 'iat present' : 'iat not required', ok: !settings.iatRequired || claims.iat !== undefined, detail: claims.iat === undefined ? 'token has no iat' : 'present', message: 'Missing iat claim; the Trusted Issuer requires an issued-at time' },
-    { id: 'nbf', label: settings.nbfRequired ? 'nbf present and reached' : 'nbf not required', ok: claims.nbf === undefined ? !settings.nbfRequired : claims.nbf <= now + skew, detail: claims.nbf === undefined ? 'token has no nbf' : 'present', message: claims.nbf === undefined ? 'Missing nbf claim; the Trusted Issuer requires a not-before time' : 'The nbf claim is in the future beyond the allowed clock skew' },
-    { id: 'aud', label: wanted.length ? 'aud has one of the trusted audiences' : 'Trusted audiences blank: any aud accepted', ok: !wanted.length || aud.some((a) => wanted.includes(a)), detail: `token aud: ${aud.length ? aud.join(', ') : 'none'}`, message: "None of the token's aud values match the Trusted Issuer's configured audiences" },
+    { id: 'assigned', label: 'Trusted issuer is assigned to the application', ok: assigned, detail: assigned ? 'assigned' : 'not assigned to the calling application', message: MESSAGES.assigned },
+    { id: 'issuer', label: 'iss equals the trusted issuer', ok: claims.iss === vendor.issuer, detail: `token iss: ${claims.iss}`, message: MESSAGES.issuer },
+    { id: 'signature', label: 'Signature verifies against the issuer JWKS', ok: sigOk, detail: sigOk ? 'verified against the JWKS (RS256, a real signature check)' : 'signature does not match any key in the JWKS', message: MESSAGES.signature },
+    { id: 'exp', label: settings.expRequired ? 'exp present and not past' : 'exp not required', ok: claims.exp === undefined ? !settings.expRequired : claims.exp > now - skew, detail: claims.exp === undefined ? 'token has no exp' : claims.exp > now - skew ? 'in the future' : 'in the past', message: claims.exp === undefined ? MESSAGES.expMissing : MESSAGES.expired },
+    { id: 'maxfuture', label: maxFuture ? `exp no more than ${maxFuture}s ahead` : 'maximum future validity off', ok: !maxFuture || claims.exp === undefined || claims.exp - now <= maxFuture, detail: claims.exp === undefined ? 'no exp' : `exp is ${claims.exp - now}s ahead`, message: MESSAGES.maxfuture },
+    { id: 'iat', label: settings.iatRequired ? 'iat present' : 'iat not required', ok: !settings.iatRequired || claims.iat !== undefined, detail: claims.iat === undefined ? 'token has no iat' : 'present', message: MESSAGES.iat },
+    { id: 'nbf', label: settings.nbfRequired ? 'nbf present and reached' : 'nbf not required', ok: claims.nbf === undefined ? !settings.nbfRequired : claims.nbf <= now + skew, detail: claims.nbf === undefined ? 'token has no nbf' : 'present', message: claims.nbf === undefined ? MESSAGES.nbfMissing : MESSAGES.nbfFuture },
+    { id: 'aud', label: wanted.length ? 'aud has one of the trusted audiences' : 'Trusted audiences blank: any aud accepted', ok: !wanted.length || aud.some((a) => wanted.includes(a)), detail: `token aud: ${aud.length ? aud.join(', ') : 'none'}`, message: MESSAGES.aud },
   ];
   const failed = checks.find((c) => !c.ok) || null;
   return { claims, checks, ok: !failed, failed, error: failed ? { status: 400, error: 'invalid_request', error_description: P1_ERROR_PREFIX + failed.message } : null };

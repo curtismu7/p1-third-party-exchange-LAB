@@ -55,6 +55,7 @@ const SETUP = {
 
 let calls;
 let override = {};
+let liveSaved; let liveRun;
 function mockFetch() {
   calls = [];
   globalThis.fetch = vi.fn(async (url, opts = {}) => {
@@ -66,6 +67,9 @@ function mockFetch() {
     if (url === "/api/setup") return json(SETUP);
     if (url.startsWith("/api/diagram")) return json(DOC);
     if (url.startsWith("/api/wire")) return json({ runId: "0123456789abcdef", wire: [item(10, "cc"), item(11, "vendor-token"), item(12, "exchange")], setup: [item(1, "issuer", { phase: "setup" })] });
+    if (url === "/api/live/status") return json({ enabled: true, banner: "LIVE: this writes to a real PingOne environment", stub: true, scenarios: [{ id: "valid", title: "Valid" }, { id: "nbf-required", title: "nbfRequired" }], settings: { environmentId: "aaaaaaaa-1111-4222-8333-bbbbbbbbbbbb", region: "com", clientId: "w1", clientSecret: "set", configured: true, file: "/x/pingone.json" } });
+    if (url === "/api/live/settings") { liveSaved = JSON.parse(opts.body); return json({ settings: {} }); }
+    if (url === "/api/live/run") { liveRun = JSON.parse(opts.body); return json({ runName: "p1x-live-abc123", error: null, banner: "LIVE", scenarios: [{ id: "valid", title: "Valid", prediction: { status: 200, expect: { act: "a", security: "Class 3", hasSub: true } }, live: { status: 200, summary: { act: "a", security: "Class 3", hasSub: true } }, match: true }, { id: "nbf-required", title: "nbfRequired", prediction: { status: 400, reason: "Missing nbf claim" }, live: { status: 400, description: "Other text" }, match: false }], mismatches: [{ scenario: "nbf-required", field: "error_description", predicted: "Missing nbf claim", live: "Other text" }], cleanup: { ok: true, thisRunClean: true }, wire: [item(1, "issuer", { phase: "setup" })] }); }
     if (url === "/api/reset") return json({ reset: "ok" });
     if (url === "/api/exchange") return json(runFor(JSON.parse(opts.body)));
     return json({}, 404);
@@ -338,5 +342,47 @@ describe("accessibility structure and display safety", () => {
   });
   it("control and bidi characters are shown as visible escapes", () => {
     expect(visible("a" + String.fromCharCode(0x202e) + "b")).toBe("a\\u202eb");
+  });
+});
+
+describe("live tab (owner-run)", () => {
+  it("does not exist in a mock or hosted build", async () => {
+    await ready();
+    expect(screen.queryByRole("tab", { name: "Live" })).toBeNull();
+    expect(calls.some((c) => c.url.startsWith("/api/live"))).toBe(false);
+  });
+  it("when MODE=live was requested but refused, the tab says why and calls nothing", async () => {
+    override.info = async () => ({ ok: true, status: 200, json: async () => ({ mode: "mock", simulated: true, hosted: false, live: { requested: true, enabled: false, reasons: ["P1TPX_ALLOW_LIVE is not 1"] } }) });
+    await ready();
+    await userEvent.click(await screen.findByRole("tab", { name: "Live" }));
+    expect(await screen.findByTestId("live-refused")).toHaveTextContent("P1TPX_ALLOW_LIVE is not 1");
+    expect(screen.getByTestId("banner")).toBeVisible();
+    expect(calls.some((c) => c.url.startsWith("/api/live"))).toBe(false);
+  });
+  it("enabled: LIVE banner, write-only secret, the Run button needs the exact environment id typed, results show match and mismatch with a pasteable list", async () => {
+    override.info = async () => ({ ok: true, status: 200, json: async () => ({ mode: "live", simulated: true, hosted: false, live: { requested: true, enabled: true, reasons: [] } }) });
+    await ready();
+    await userEvent.click(await screen.findByRole("tab", { name: "Live" }));
+    expect(await screen.findByTestId("live-banner")).toHaveTextContent(/LIVE: this writes to a real PingOne environment and deletes it again/);
+    expect(screen.getByTestId("live-secret-state")).toHaveTextContent("set");
+    expect(screen.getByTestId("live-secret")).toHaveValue("");
+    expect(document.body.textContent).not.toContain("STUB-WORKER-SECRET");
+    expect(screen.getByTestId("live-run-btn")).toBeDisabled();
+    await userEvent.type(screen.getByTestId("live-confirm"), "aaaaaaaa-1111-4222-8333-bbbbbbbbbbb");
+    expect(screen.getByTestId("live-run-btn")).toBeDisabled();
+    await userEvent.type(screen.getByTestId("live-confirm"), "b");
+    expect(screen.getByTestId("live-run-btn")).toBeEnabled();
+    await userEvent.type(screen.getByTestId("live-secret"), "new-secret-value");
+    await userEvent.click(screen.getByTestId("live-save"));
+    await waitFor(() => expect(liveSaved.clientSecret).toBe("new-secret-value"));
+    await userEvent.click(screen.getByTestId("live-run-btn"));
+    expect(await screen.findByTestId("live-table")).toBeInTheDocument();
+    expect(liveRun).toEqual({ confirm: "aaaaaaaa-1111-4222-8333-bbbbbbbbbbbb", scenarios: ["valid", "nbf-required"] });
+    expect(screen.getByTestId("badge-valid")).toHaveTextContent("MATCH");
+    expect(screen.getByTestId("badge-nbf-required")).toHaveTextContent("MISMATCH");
+    expect(screen.getByTestId("live-mismatches")).toHaveValue("nbf-required | error_description | mock predicted: Missing nbf claim | live: Other text");
+    expect(screen.getByTestId("live-cleanup-result")).toHaveTextContent("nothing named p1x-live remains");
+    expect(screen.getByTestId("banner")).toBeVisible();
+    await userEvent.keyboard("{Escape}");
   });
 });

@@ -65,3 +65,13 @@ test('deploy.sh refuses without owner approval, without an immutable tag, and wi
   assert.doesNotMatch(read('k8s/deployment.yaml') + read('k8s/service.yaml') + read('k8s/ingress.yaml') + read('k8s/certificate.yaml'), /namespace:/, 'manifests carry no namespace');
   assert.doesNotMatch(read('k8s/deploy.sh'), /envsubst/);
 });
+
+test('live mode is not in any manifest, the image defaults to mock, and nothing enables it', () => {
+  for (const f of ['k8s/deployment.yaml', 'k8s/service.yaml', 'k8s/ingress.yaml', 'k8s/certificate.yaml', 'k8s/deploy.sh', 'Dockerfile', 'docker-compose.yml']) {
+    const t = read(f);
+    assert.doesNotMatch(t, /MODE[=:,\s"']+\s*value:\s*live|MODE=live|MODE:\s*"?live|ALLOW_LIVE|P1TPX_LIVE_STUB/i, `${f} must not enable live mode`);
+  }
+  assert.match(read('k8s/deployment.yaml'), /name: MODE, value: mock/);
+  assert.match(read('k8s/deployment.yaml'), /P1TPX_HOSTED, value: "1"/);
+  assert.match(read('Dockerfile'), /ENV[^\n]*MODE=mock/);
+});

@@ -106,3 +106,8 @@ label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 .wire-cols > div { min-width: 0; }
 .wire { display: grid; gap: 12px; }
 .ok { color: var(--th-ok-text); font-weight: 700; } .bad { color: var(--th-deny-text); font-weight: 700; }
+.live { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); align-items: start; }
+.live > .panel--wide { grid-column: 1 / -1; }
+.panel--live { color: var(--th-deny-text); background: var(--th-deny-bg); border: 2px solid var(--th-deny); }
+.live input[type="text"], .live input[type="password"] { width: 100%; font: inherit; font-size: var(--font-size-sm); color: var(--th-text); background: var(--th-bg-card); border: 1px solid var(--th-border-strong); border-radius: var(--radius-md); padding: 6px 8px; margin-top: 4px; }
+.panel code { overflow-wrap: anywhere; word-break: break-all; }

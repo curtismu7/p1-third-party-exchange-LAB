@@ -6,6 +6,7 @@ import SetupTab from "./components/SetupTab";
 import AdminTab from "./components/AdminTab";
 import TalkTrack from "./components/TalkTrack";
 import WireTab from "./components/WireTab";
+import LiveTab from "./components/LiveTab";
 import { exchange, getJson, resetWorkspace } from "./api";
 
 export const TABS = [
@@ -17,6 +18,8 @@ export const TABS = [
   { id: "admin", label: "Admin and limits" },
   { id: "talk", label: "Talk track" },
 ];
+// Added only when MODE=live is requested (owner-run, local); never in a mock or hosted build.
+export const LIVE_TAB = { id: "live", label: "Live" };
 // Which talk-track items presenter mode shows on each tab.
 const SAY = { exchange: ["say-first", "what", "nbf", "mapping", "limits"], wire: ["wire"], diagram: ["what"], compare: ["mapping"], setup: ["setup"], admin: ["limits"] };
 // The banner is never blank and never claims "not hosted" before it knows: until /api/info or /api/vendors answers (or if both fail)
@@ -31,6 +34,7 @@ const initialSel = (defaults, vendorId) => ({ vendorId: vendorId || FALLBACK.ven
 // #exchange, #diagram ... select a tab; #vendor-<id> selects the Exchange tab and an issuer (checked against the server's list).
 const hashParts = () => {
   const h = window.location.hash.replace("#", "");
+  if (h === "live") return { tab: "live", vendor: null };
   const m = /^vendor-([a-z0-9-]{1,40})$/.exec(h);
   if (m) return { tab: "exchange", vendor: m[1] };
   return { tab: TABS.some((t) => t.id === h) ? h : "exchange", vendor: null };
@@ -111,11 +115,13 @@ export default function App() {
 
   const onKeyTab = (e, i) => {
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-    const next = TABS[(i + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length];
+    const next = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
     select(next.id);
     document.getElementById(`tab-${next.id}`)?.focus();
   };
 
+  const liveInfo = info && info.live && info.live.requested ? info.live : null;
+  const tabs = liveInfo ? [...TABS, LIVE_TAB] : TABS;
   const hosted = config ? !!config.hosted : info ? !!info.hosted : null;
   const banner = config ? config.banner : hosted === true ? BANNER_HOSTED : hosted === false ? BANNER_LOCAL : BANNER_UNKNOWN;
   return (
@@ -144,7 +150,7 @@ export default function App() {
       <main>
         <p className="sr-only" role="status" aria-live="polite">{resetMsg}</p>
         <div role="tablist" aria-label="App sections" className="tabs" ref={tabsRef}>
-          {TABS.map((t, i) => (
+          {tabs.map((t, i) => (
             <button key={t.id} id={`tab-${t.id}`} role="tab" type="button" aria-selected={tab === t.id} aria-controls={`panel-${t.id}`} tabIndex={tab === t.id ? 0 : -1}
               onClick={() => select(t.id)} onKeyDown={(e) => onKeyTab(e, i)}>{t.label}</button>
           ))}
@@ -164,6 +170,7 @@ export default function App() {
               {tab === "setup" && <SetupTab />}
               {tab === "admin" && <AdminTab evidence={config.evidence} />}
               {tab === "talk" && <TalkTrack talk={config.talkTrack} />}
+              {tab === "live" && liveInfo && <LiveTab reasons={liveInfo.enabled ? [] : liveInfo.reasons} />}
             </>
           )}
         </div>

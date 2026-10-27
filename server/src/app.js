@@ -8,7 +8,8 @@ import express from 'express';
 import { hostCheck, sameOriginWrites } from './safety.js';
 import { createHealth } from './health.js';
 import { loadCast, verticalFrom, VERTICALS } from './cast.js';
-import { hostedFrom, modeFrom } from './config.js';
+import { liveGate } from './live/gate.js';
+import { LIVE_BANNER, createLiveRouter } from './live/routes.js';
 import { BANNER, COMPARE_COLUMNS, COMPARE_NOTE, COMPARE_ROWS, EVIDENCE, HOSTED_BANNER, INTRO, NOT_SHOWN, STEPS, TITLE, TOKEN_STATES, TRUSTED_ISSUER_DEFAULTS, VENDORS } from './exchangeData.js';
 import { ExchangeInputError, inputFromQuery, normalizeInput, runExchange } from './exchange.js';
 import { buildDiagram } from './diagramData.js';
@@ -23,7 +24,7 @@ const WEB_DIST = process.env.WEB_DIST || path.resolve(HERE, '../../web/dist');
 const CONFIG = process.env.CUSTOMER_CONFIG || path.resolve(HERE, '../../customer.config.json');
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
-export function createApp({ health = createHealth(), configFile = CONFIG, hosted = false, workspaces = createWorkspaces(), now = nowSeconds } = {}) {
+export function createApp({ health = createHealth(), configFile = CONFIG, hosted = false, workspaces = createWorkspaces(), now = nowSeconds, env = process.env, live = {} } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.use(hostCheck);
@@ -40,7 +41,7 @@ export function createApp({ health = createHealth(), configFile = CONFIG, hosted
     noStore(res);
     const cast = castFor(req);
     res.json({
-      title: TITLE, intro: INTRO, banner: hosted ? HOSTED_BANNER : BANNER, hosted, simulated: true,
+      title: TITLE, intro: INTRO, banner: hosted ? HOSTED_BANNER : liveGate(env, { hosted }).allowed ? `SIMULATED except the Live tab. ${LIVE_BANNER}` : BANNER, hosted, simulated: true,
       tokenLabel: 'MOCK-ISSUED teaching tokens: decoded for education, never a real credential',
       evidence: EVIDENCE,
       vendors: VENDORS.map((v) => ({ id: v.id, name: v.name, evidence: v.evidence, issuer: v.issuer, note: v.note, mappings: v.mappings })),
@@ -61,7 +62,15 @@ export function createApp({ health = createHealth(), configFile = CONFIG, hosted
     }
   });
   // What this build is, for the banner and for verifying a deploy by content (not by a 200).
-  api.get('/info', (_req, res) => { noStore(res); res.json({ mode: modeFrom(), simulated: true, hosted }); });
+  api.get('/info', (_req, res) => {
+    noStore(res);
+    const g = liveGate(env, { hosted });
+    const body = { mode: g.allowed ? 'live' : 'mock', simulated: true, hosted };
+    if (g.requested) body.live = { requested: true, enabled: g.allowed, reasons: g.reasons };
+    res.json(body);
+  });
+  // Owner-run LIVE mode. Always mounted so the answer is a clear 403 with reasons; the hosted build can never pass the gate.
+  api.use('/live', createLiveRouter({ env, hosted, ...live }));
 
   const withWorkspace = (handler) => (req, res) => {
     const ws = workspaceFrom(req);

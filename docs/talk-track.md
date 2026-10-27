@@ -26,6 +26,10 @@ The attribute mapping on the custom resource reads a claim from the actor token.
 
 The Wire tab shows every HTTP call whole: the admin calls that set it up (trusted issuer with its inline JWKS, resource, scope, attributes, application, grant, assignment) and the three runtime calls. Full URLs, every header, the exact bodies, a curl for each, and the complete tokens with Copy buttons. The tokens are real RS256 JWTs signed by mock keys, the actor token verifies against the JWKS in the trusted-issuer call, and a bad-signature token really fails. All hosts end in .example and every credential is a MOCK one.
 
+## Live mode (owner-run)
+
+Only on the owner's machine, never in the hosted build: MODE=live with P1TPX_ALLOW_LIVE=1. It writes to a real PingOne environment: it creates throwaway p1x-live-* objects with its own key, runs the scenarios, compares each result with what this mock predicted (MATCH or MISMATCH), and deletes everything again. The worker secret is write-only and is never shown.
+
 ## What we do not claim
 
 A third-party SUBJECT token is not simulated: the guide only shows actor tokens, and live it leaves the issued token with no sub. The refusal texts are what PingOne returned; the order it evaluates checks in when several things are wrong is UNVERIFIED. Clock skew (0 to 60 seconds) and maximum future validity are simulated as measured.

@@ -15,3 +15,11 @@ export async function exchange(payload) {
 }
 
 export const resetWorkspace = () => workspaceFetch("/api/reset", { method: "POST", body: "{}" }).then((r) => r.ok);
+
+// Owner-run LIVE endpoints. Returns { ok, status, body }; a 4xx is data (a code and a detail), not an exception.
+export async function liveCall(url, payload) {
+  const r = await workspaceFetch(url, { method: "POST", body: JSON.stringify(payload) });
+  let body = {};
+  try { body = await r.json(); } catch { /* not JSON */ }
+  return { ok: r.ok, status: r.status, body };
+}
