@@ -9,6 +9,8 @@ import { liveGate } from './gate.js';
 import { SettingsError, createLiveSettings, defaultShareDir } from './settings.js';
 import { SCENARIOS, cleanupLeftovers, runLive } from './run.js';
 import { isLoopbackHost } from '../safety.js';
+import { InputError, checkIssuer, parseExchangeInput, realExchange } from './realExchange.js';
+import { UrlRefused } from './ssrf.js';
 
 export const LIVE_BANNER = 'LIVE: this writes to a real PingOne environment (it creates throwaway p1x-live-* objects, uses them, and deletes them again). It is NOT a simulation.';
 
@@ -89,6 +91,32 @@ export function createLiveRouter({ env = process.env, hosted = false, settings =
     if (report.ok) { try { (await import('node:fs')).rmSync(path.join(dir, 'live-cleanup.json')); } catch { /* none */ } }
     return { ...report, wire: client.items() };
   }));
+
+  // "Real exchange (local)": exactly ONE real RFC 8693 request to the saved environment. Creates and deletes nothing. The app secret and
+  // the optional third-party secret live in memory for this request only.
+  router.post('/real/exchange', (req, res) => {
+    let input;
+    try { input = parseExchangeInput(req.body); } catch (e) { return res.status(400).json({ error: 'bad_input', detail: e.message }); }
+    return withClient(req, res, async ({ client, secrets }) => {
+      try { return await realExchange({ client, input, stub: Boolean(env.P1TPX_LIVE_STUB), secrets, nowFn: now || (() => Math.floor(Date.now() / 1000)), fetchImpl }); } catch (e) {
+        if (e instanceof UrlRefused || e instanceof InputError) return { error: e.code, detail: e.message, wire: client.items() };
+        throw e;
+      }
+    });
+  });
+
+  // "Check issuer metadata": public GETs of <iss>/.well-known/openid-configuration and its jwks_uri, through the SSRF guard.
+  router.post('/real/issuer-check', async (req, res) => {
+    const b = req.body || {};
+    try {
+      const report = await checkIssuer({ iss: b.iss, kid: typeof b.kid === 'string' ? b.kid : undefined, x5t: typeof b.x5t === 'string' ? b.x5t : undefined, jwksUrl: typeof b.jwksUrl === 'string' && b.jwksUrl ? b.jwksUrl : undefined, stub: Boolean(env.P1TPX_LIVE_STUB), nowFn: now || (() => Math.floor(Date.now() / 1000)), fetchImpl });
+      res.set('Cache-Control', 'no-store').json(report);
+    } catch (e) {
+      if (e instanceof UrlRefused || e instanceof InputError) return res.status(400).json({ error: e.code, detail: e.message });
+      return res.status(502).json({ error: 'check_failed', detail: e instanceof LiveError ? e.message : 'the check failed' });
+    }
+    return undefined;
+  });
 
   return router;
 }

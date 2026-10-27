@@ -60,7 +60,8 @@ export function createLiveClient({ target, secrets = () => [], fetchImpl = (...a
   let n = 0;
   let phase = 'setup';
   let bearer = null;
-  const scrub = (text) => secrets().filter(Boolean).reduce((t, s) => t.split(s).join('<redacted>'), String(text));
+  // Also the percent-encoded form: a secret with special characters appears encoded in a urlencoded body.
+  const scrub = (text) => secrets().filter(Boolean).reduce((t, s) => t.split(s).join('<redacted>').split(encodeURIComponent(s)).join('<redacted>').split(new URLSearchParams({ x: s }).toString().slice(2)).join('<redacted>'), String(text));
   const authUrl = (p) => `${target.authBase}/${target.envId}/as/${p}`;
   const apiUrl = (p) => `${target.apiBase}/v1/environments/${target.envId}/${p}`;
 

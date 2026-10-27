@@ -45,6 +45,13 @@ Port range 5200-5249 (default 5200). `GET /api/health` answers `demo-health/1`.
 
 State is per workspace: send `X-Workspace` (default `default`, `^[a-z0-9-]{1,40}$`, anything else is a 400); the store is bounded (500 workspaces, 1 hour, 20 runs each).
 
+## Real exchange tabs and inline token decoding
+
+- **Real exchange (your browser)** (all builds, hosted too): the visitor's browser sends one real RFC 8693 request straight to their own PingOne token endpoint (strictly validated: https, an auth host of the six regions, path `/<uuid>/as/token`). Nothing passes through this server (a Playwright test records every app-origin request during a send and asserts none carries the secret or the tokens). The secret lives only in React state; Reset and leaving the tab clear it. Authorization is redacted in the view and in Copy curl unless you tick "show" / "include the secret". The server sets no Content-Security-Policy, so there is no `connect-src` to widen.
+- **Real exchange (local)** (live build only, same gate as the Live tab): one real exchange from the local server to the saved environment; creates and deletes nothing; optional one-shot client-credentials fetch of the actor token from a typed third-party endpoint (SSRF guard: https, no IP literals or internal names, every resolved address public, the netguard allows only that host for that call, no redirects, 20 s, 256 KB) and "Check issuer metadata" (public GETs of the issuer's discovery document and JWKS). `POST /api/live/real/exchange`, `POST /api/live/real/issuer-check`.
+- Both show the actor token inspector (iss, sub, aud, exp/iat/nbf, kid/x5t, act is an object) and map PingOne's refusal to a hint. The PingFederate trap (x5t without kid, key not published to /pf/JWKS) is flagged.
+- **Inline decoding** on every wire view (Wire, Exchange, Live, both real tabs): a global "Decode tokens inline" switch (default on, remembered in localStorage; if storage is blocked it still works) and a per-call toggle. Under each call every JWT found (JSON fields, urlencoded form fields, header values) is decoded: label, header, payload, a claims table with ISO times and "in 59 min" / "expired 2 min ago", highlights for iss, sub, aud, scope and act, an exp badge and a signature verdict (a real WebCrypto check against the JWKS of the trusted-issuer call when the wire has one, otherwise "signature not checked here"). On screen the long raw token in a body is shortened to a one-line placeholder; "show raw" restores it, and every Copy button and curl always uses the full raw text.
+
 ## Live mode (owner-run)
 
 **LIVE writes to a real PingOne environment and deletes it again. It exists only on your own machine and never in the hosted build or the Docker/k8s images.**

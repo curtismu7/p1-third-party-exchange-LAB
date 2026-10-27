@@ -30,6 +30,10 @@ The Wire tab shows every HTTP call whole: the admin calls that set it up (truste
 
 Only on the owner's machine, never in the hosted build: MODE=live with P1TPX_ALLOW_LIVE=1. It writes to a real PingOne environment: it creates throwaway p1x-live-* objects with its own key, runs the scenarios, compares each result with what this mock predicted (MATCH or MISMATCH), and deletes everything again. The worker secret is write-only and is never shown.
 
+## Real exchange tabs
+
+Two tabs make a REAL exchange. In every build, including this hosted one, Real exchange (your browser) sends the request from your own browser straight to your own PingOne: nothing goes through this server, and the secret and tokens stay in the page. On the owner's machine only, Real exchange (local) sends one real exchange from the local server, optionally fetching the third-party token for you; it creates and deletes nothing. Your PingFederate token works as the third-party token if PingOne trusts its issuer and the PingFederate access token manager publishes its keys.
+
 ## What we do not claim
 
 A third-party SUBJECT token is not simulated: the guide only shows actor tokens, and live it leaves the issued token with no sub. The refusal texts are what PingOne returned; the order it evaluates checks in when several things are wrong is UNVERIFIED. Clock skew (0 to 60 seconds) and maximum future validity are simulated as measured.

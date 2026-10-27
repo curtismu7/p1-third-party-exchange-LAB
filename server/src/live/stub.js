@@ -5,7 +5,7 @@ import http from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { decodeJwt, signJwt, verifyJwt } from '../jwt.js';
-import { KIDS, p1Key } from '../keys.js';
+import { KIDS, jwkOf, p1Key } from '../keys.js';
 import { MESSAGES, P1_ERROR_PREFIX } from '../exchange.js';
 
 const GRANT = 'urn:ietf:params:oauth:grant-type:token-exchange';
@@ -13,7 +13,7 @@ const JWT_T = 'urn:ietf:params:oauth:token-type:jwt';
 const ACCESS_T = 'urn:ietf:params:oauth:token-type:access_token';
 const rid = () => `${randomBytes(4).toString('hex')}-0000-4000-8000-${randomBytes(6).toString('hex')}`;
 
-export function startStub({ envId, workerId = 'stub-worker-client', workerSecret = 'STUB-WORKER-SECRET-VALUE', quirks = {}, failOn = null } = {}) {
+export function startStub({ envId, workerId = 'stub-worker-client', workerSecret = 'STUB-WORKER-SECRET-VALUE', quirks = {}, failOn = null, tp = null } = {}) {
   const state = { failOn, issuers: new Map(), resources: new Map(), apps: new Map(), workerTokens: new Set(), log: [], corr: 0 };
   const key = p1Key();
   const iss = `http://stub.invalid/${envId}/as`;
@@ -58,8 +58,8 @@ export function startStub({ envId, workerId = 'stub-worker-client', workerSecret
 
   function token(req, res, body) {
     const basic = /^Basic (.+)$/.exec(req.headers.authorization || '');
-    const [id, secret] = basic ? Buffer.from(basic[1], 'base64').toString().split(/:(.*)/s) : [];
     const f = new URLSearchParams(body);
+    const [id, secret] = basic ? Buffer.from(basic[1], 'base64').toString().split(/:(.*)/s) : [f.get('client_id'), f.get('client_secret')];
     const grant = f.get('grant_type');
     if (id === workerId && secret === workerSecret && grant === 'client_credentials') {
       const t = `stub-worker-${randomBytes(12).toString('hex')}`; state.workerTokens.add(t);
@@ -142,6 +142,22 @@ export function startStub({ envId, workerId = 'stub-worker-client', workerSecret
     return send(res, 404, { code: 'NOT_FOUND', message: 'stub: no such endpoint' });
   }
 
+  // A stand-in third-party issuer (token endpoint, discovery document, JWKS) for the "Real exchange (local)" tests.
+  let tpIssuer = null;
+  function thirdParty(req, res, body, pathname) {
+    if (req.method === 'POST' && pathname === '/tp/token') {
+      const basic = /^Basic (.+)$/.exec(req.headers.authorization || '');
+      const f = new URLSearchParams(body);
+      const [id, secret] = basic ? Buffer.from(basic[1], 'base64').toString().split(/:(.*)/s) : [f.get('client_id'), f.get('client_secret')];
+      if (id !== tp.clientId || secret !== tp.clientSecret) return send(res, 401, { error: 'invalid_client' });
+      const t = now();
+      return send(res, 200, { access_token: signJwt({ iss: tpIssuer, sub: tp.clientId, aud: 'tp-audience', iat: t, exp: t + 3600, jti: rid(), securityLevel: 'Class 3' }, { privateKey: tp.privateKey, kid: tp.kid }), token_type: 'Bearer', expires_in: 3600 });
+    }
+    if (req.method === 'GET' && pathname === '/tp/.well-known/openid-configuration') return send(res, 200, { issuer: tpIssuer, jwks_uri: `${tpIssuer}/jwks` });
+    if (req.method === 'GET' && pathname === '/tp/jwks') return send(res, 200, { keys: [jwkOf(tp.publicKey, tp.kid)] });
+    return send(res, 404, { code: 'NOT_FOUND' });
+  }
+
   const server = http.createServer((req, res) => {
     const chunks = [];
     req.on('data', (c) => chunks.push(c));
@@ -150,15 +166,16 @@ export function startStub({ envId, workerId = 'stub-worker-client', workerSecret
       const pathname = new URL(req.url, 'http://x').pathname;
       state.log.push(`${req.method} ${pathname}`);
       try {
+        if (tp && pathname.startsWith('/tp/')) return thirdParty(req, res, body, pathname);
         if (req.method === 'POST' && pathname === `/${envId}/as/token`) return token(req, res, body);
         if (pathname.startsWith(`${base}/`)) return manage(req, res, body, pathname);
         return send(res, 404, { code: 'NOT_FOUND' });
       } catch { return send(res, 500, { code: 'UNEXPECTED_ERROR' }); }
     });
   });
-  return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve({
-    server, state, url: `http://127.0.0.1:${server.address().port}`, workerId, workerSecret,
+  return new Promise((resolve) => server.listen(0, '127.0.0.1', () => { tpIssuer = `http://127.0.0.1:${server.address().port}/tp`; resolve({
+    server, state, url: `http://127.0.0.1:${server.address().port}`, tpIssuer, workerId, workerSecret,
     names: () => ({ apps: [...state.apps.values()].map((x) => x.name), resources: [...state.resources.values()].map((x) => x.name), issuers: [...state.issuers.values()].map((x) => x.name) }),
     close: () => new Promise((r) => server.close(r)),
-  })));
+  }); }));
 }

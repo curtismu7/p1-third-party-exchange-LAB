@@ -10,6 +10,8 @@ let active = null;
 // mock and hosted builds, and only the live module fills it. Matching is on the exact host name.
 let allowedHosts = new Set();
 export const allowNetworkHosts = (hosts) => { allowedHosts = new Set([...hosts].map((h) => String(h).toLowerCase())); };
+/** Replace the allow-list and return the previous one (so a one-shot call can allow ONLY its own host and then restore). */
+export const swapAllowedHosts = (hosts) => { const prev = [...allowedHosts]; allowNetworkHosts(hosts); return prev; };
 export const networkHostAllowed = (host) => isLoopbackHost(host) || allowedHosts.has(String(host).toLowerCase());
 
 export function installNetguard() {

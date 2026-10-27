@@ -144,3 +144,20 @@ From the comparison sheet and the vendors' sample tokens: Okta, Auth0 and RFC 90
 ## Which claim names each issuer uses
 
 See the Claims compared tab (from the comparison sheet). In short, the calling application id is `client_id` (PingOne, RFC 9068), `azp` (Auth0, Microsoft v2.0), `cid` (Okta) or `appid` (Microsoft v1.0).
+
+## Real exchange tabs
+
+Two tabs make a REAL token exchange (the rest of this app is a simulation).
+
+**Real exchange (your browser)**, in every build including the hosted one. Your browser sends the request straight to your own PingOne token endpoint; nothing passes through this app's server, and the client secret and tokens stay in the page (not stored, not in the URL, cleared by Reset and when you leave the tab). It needs the token endpoint of your environment (your region's auth host, then `/<environment id>/as/token`; anything else is refused), an application that may use the token exchange grant, a scope on the custom resource, a subject token and an actor token. PingOne's token endpoint answers browser (CORS) requests; if the browser blocks the call you will see a "Failed to fetch" explanation.
+
+**Real exchange (local)**, only in the owner-run live build (`MODE=live P1TPX_ALLOW_LIVE=1`, on this machine, never hosted). It sends exactly one real exchange from the local server to the saved environment (it creates and deletes nothing), and can get the subject token by client credentials from the application and the actor token from a third-party token endpoint you type (https, a public host, one call). Type the environment id to confirm.
+
+Both tabs show the full wire (secrets redacted, tokens whole and decoded), an **actor token inspector** (iss, sub, aud, exp/iat/nbf, kid and x5t, whether `act` is an object) and what to configure in PingOne: a trusted issuer whose Issuer equals the token's `iss` character for character and whose JWKS URL serves the signing key. A refusal is shown with PingOne's text and a hint.
+
+### Using your PingFederate token as the third-party token
+
+1. In PingOne add a trusted issuer: Issuer = your PingFederate base URL exactly as in the token's `iss`, JWKS URL = the PingFederate base URL followed by `/pf/JWKS`, Audience blank (see step 1 above).
+2. Assign it to the exchanging application (step 2 above).
+3. The PingFederate token must be a JWT with `exp`. PingFederate tokens often carry `x5t` and no `kid`, so the signing key must be published in the JWKS: on the JWT access token manager turn on "Publish Keys to the PingFederate JWKS Endpoint", or PingOne answers "JWT signature verification failed". The local tab's "Check issuer metadata" reports whether the token's kid or x5t matches a published key (UNVERIFIED for your PingFederate version).
+4. PingFederate's token endpoint does not allow browser requests (CORS), so for the browser tab get the PingFederate token yourself (curl or Postman) and paste it. The local tab can fetch it for you.
