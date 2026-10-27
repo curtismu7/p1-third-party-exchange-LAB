@@ -6,7 +6,10 @@ import SetupTab from "./components/SetupTab";
 import AdminTab from "./components/AdminTab";
 import TalkTrack from "./components/TalkTrack";
 import WireTab from "./components/WireTab";
+import { DecodeProvider } from "./components/DecodeContext";
 import LiveTab from "./components/LiveTab";
+import RealBrowserTab from "./components/RealBrowserTab";
+import RealLocalTab from "./components/RealLocalTab";
 import { exchange, getJson, resetWorkspace } from "./api";
 
 export const TABS = [
@@ -20,8 +23,10 @@ export const TABS = [
 ];
 // Added only when MODE=live is requested (owner-run, local); never in a mock or hosted build.
 export const LIVE_TAB = { id: "live", label: "Live" };
+export const REAL_BROWSER_TAB = { id: "realbrowser", label: "Real exchange (your browser)" };
+export const REAL_LOCAL_TAB = { id: "reallocal", label: "Real exchange (local)" };
 // Which talk-track items presenter mode shows on each tab.
-const SAY = { exchange: ["say-first", "what", "nbf", "mapping", "limits"], wire: ["wire"], diagram: ["what"], compare: ["mapping"], setup: ["setup"], admin: ["limits"] };
+const SAY = { realbrowser: ["real"], reallocal: ["real"], exchange: ["say-first", "what", "nbf", "mapping", "limits"], wire: ["wire"], diagram: ["what"], compare: ["mapping"], setup: ["setup"], admin: ["limits"] };
 // The banner is never blank and never claims "not hosted" before it knows: until /api/info or /api/vendors answers (or if both fail)
 // it says both, honestly.
 const TAIL = "Nothing here calls PingOne, a third-party issuer or any tenant.";
@@ -34,13 +39,13 @@ const initialSel = (defaults, vendorId) => ({ vendorId: vendorId || FALLBACK.ven
 // #exchange, #diagram ... select a tab; #vendor-<id> selects the Exchange tab and an issuer (checked against the server's list).
 const hashParts = () => {
   const h = window.location.hash.replace("#", "");
-  if (h === "live") return { tab: "live", vendor: null };
+  if (["live", "realbrowser", "reallocal"].includes(h)) return { tab: h, vendor: null };
   const m = /^vendor-([a-z0-9-]{1,40})$/.exec(h);
   if (m) return { tab: "exchange", vendor: m[1] };
   return { tab: TABS.some((t) => t.id === h) ? h : "exchange", vendor: null };
 };
 
-export default function App() {
+function AppInner() {
   const [vertical, setVertical] = useState("retail");
   const [config, setConfig] = useState(null);
   const [info, setInfo] = useState(undefined); // undefined = loading, null = failed
@@ -121,7 +126,8 @@ export default function App() {
   };
 
   const liveInfo = info && info.live && info.live.requested ? info.live : null;
-  const tabs = liveInfo ? [...TABS, LIVE_TAB] : TABS;
+  const liveOn = Boolean(liveInfo && liveInfo.enabled);
+  const tabs = [...TABS, REAL_BROWSER_TAB, ...(liveInfo ? [LIVE_TAB] : []), ...(liveOn ? [REAL_LOCAL_TAB] : [])];
   const hosted = config ? !!config.hosted : info ? !!info.hosted : null;
   const banner = config ? config.banner : hosted === true ? BANNER_HOSTED : hosted === false ? BANNER_LOCAL : BANNER_UNKNOWN;
   return (
@@ -170,6 +176,8 @@ export default function App() {
               {tab === "setup" && <SetupTab />}
               {tab === "admin" && <AdminTab evidence={config.evidence} />}
               {tab === "talk" && <TalkTrack talk={config.talkTrack} />}
+              {tab === "realbrowser" && <RealBrowserTab resetSignal={resetSignal} />}
+              {tab === "reallocal" && liveOn && <RealLocalTab resetSignal={resetSignal} />}
               {tab === "live" && liveInfo && <LiveTab reasons={liveInfo.enabled ? [] : liveInfo.reasons} />}
             </>
           )}
@@ -177,4 +185,8 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+export default function App() {
+  return <DecodeProvider><AppInner /></DecodeProvider>;
 }

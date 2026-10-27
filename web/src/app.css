@@ -111,3 +111,16 @@ label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 .panel--live { color: var(--th-deny-text); background: var(--th-deny-bg); border: 2px solid var(--th-deny); }
 .live input[type="text"], .live input[type="password"] { width: 100%; font: inherit; font-size: var(--font-size-sm); color: var(--th-text); background: var(--th-bg-card); border: 1px solid var(--th-border-strong); border-radius: var(--radius-md); padding: 6px 8px; margin-top: 4px; }
 .panel code { overflow-wrap: anywhere; word-break: break-all; }
+.wire-tools { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0; }
+.dtoken { border: 1px solid var(--th-border); border-radius: var(--radius-md); padding: 8px 10px; margin: 10px 0; min-width: 0; }
+.dtoken--bad { border-color: var(--th-deny); }
+.dtoken__head { overflow-wrap: anywhere; }
+.badge { display: inline-block; padding: 1px 8px; border-radius: var(--radius-pill); border: 1px solid var(--th-border-strong); font-size: var(--font-size-2xs); font-weight: 700; }
+.badge--valid { color: var(--th-ok-text); background: var(--th-ok-bg); border-color: var(--th-ok); }
+.badge--expired { color: var(--th-deny-text); background: var(--th-deny-bg); border-color: var(--th-deny); }
+.claims td, .claims th { overflow-wrap: anywhere; word-break: break-word; }
+.claim--hl td { font-weight: 700; background: var(--th-bg-inset); }
+.real { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); align-items: start; }
+.real > .panel--wide { grid-column: 1 / -1; }
+.real select, .real textarea, .real input[type="text"], .real input[type="password"] { width: 100%; max-width: 100%; font: inherit; font-size: var(--font-size-sm); color: var(--th-text); background: var(--th-bg-card); border: 1px solid var(--th-border-strong); border-radius: var(--radius-md); padding: 6px 8px; margin-top: 4px; }
+.inspector h4 { margin: 8px 0 4px; }

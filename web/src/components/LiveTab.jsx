@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import WireItem from "./WireItem";
 import CopyButton from "./CopyButton";
+import { DecodeSwitch } from "./DecodeContext";
+import { jwksFromWire } from "../tokenDecode";
 import { getJson, liveCall } from "../api";
 import { visible } from "../safeText";
 
@@ -116,8 +118,9 @@ export default function LiveTab({ reasons }) {
             <p data-testid="live-cleanup-result">{report.cleanup ? (report.cleanup.error || (report.cleanup.ok ? `Run ${report.runName}: everything it created was deleted and nothing named p1x-live remains.` : `Objects named p1x-live still remain (this run clean: ${String(report.cleanup.thisRunClean)}). Use "Clean up leftovers".`)) : "No cleanup report."}</p>
           </section>
           <section className="panel panel--wide" aria-labelledby="live-wire"><h2 id="live-wire">Captured wire ({report.wire.length} calls)</h2>
+            <p><DecodeSwitch /></p>
             <p className="muted">The same format as the Wire tab. Worker bearer and client secrets are redacted; the test tokens are shown whole.</p>
-            {report.wire.map((i) => <WireItem key={`${i.id}-${i.n}`} item={i} evidence={ev} />)}</section>
+            {report.wire.map((i) => <WireItem key={`${i.id}-${i.n}`} item={i} evidence={ev} jwks={jwksFromWire(report.wire)} />)}</section>
         </>
       )}
     </div>

@@ -2,6 +2,8 @@ import Json from "./Json";
 import Tag from "./Tag";
 import TokenBlock from "./TokenBlock";
 import WireItem from "./WireItem";
+import { DecodeSwitch } from "./DecodeContext";
+import { jwksFromWire } from "../tokenDecode";
 import { visible } from "../safeText";
 
 function Hops({ hops, traceId }) {
@@ -84,8 +86,9 @@ export default function ExchangePanel({ config, sel, setSel, run, fail }) {
           </section>
           <section className="panel panel--wide" aria-labelledby="req-h">
             <h2 id="req-h">The calls of this run, in full <Tag kind="measured" evidence={ev} /></h2>
+            <p><DecodeSwitch /></p>
             <p className="muted">The same data as the Wire tab. Full URLs, every header, the exact bodies and the whole tokens; nothing is abbreviated.</p>
-            {run.wire.map((i, k) => <WireItem key={i.id} item={i} evidence={ev} open={k === run.wire.length - 1} />)}
+            {run.wire.map((i, k) => <WireItem key={i.id} item={i} evidence={ev} open={k === run.wire.length - 1} jwks={jwksFromWire(run.setup)} />)}
             {run.error && (<><h3>Error body (text MEASURED live, HTTP {run.error.status}) <Tag kind="measured" evidence={ev} /></h3><Json value={{ error: run.error.error, error_description: run.error.error_description }} label="PingOne error response" testId="error-body" /></>)}
           </section>
           <section className="panel" aria-labelledby="sub-h">
