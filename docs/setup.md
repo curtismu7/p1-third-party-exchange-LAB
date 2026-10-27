@@ -137,6 +137,17 @@ Expected response (GUIDE sample): `token_type: Bearer`, `expires_in: 3600`, the 
 
 Two things that are easy to misread: an untrusted issuer and an unassigned issuer give **different** messages, and a token whose `aud` is an array passes if **any** value matches the audience list (blank list accepts any). `nbfRequired` with an `nbf` in the past passes.
 
+## Measured with a real PingFederate token (2026-10-27)
+
+A token from a real PingFederate (13.1) JWT access token manager was used as the actor token, with the trusted issuer pointing at that PingFederate's **JWKS URL**, so PingOne fetched and used the live keys itself.
+
+- **Trusted issuer:** `issuer` exactly equal to the token's `iss` (the PingFederate base URL, no trailing slash), `jwksUrl` = `<PingFederate base URL>/pf/JWKS`, `expRequired` and `iatRequired` true. Audiences left blank: the PingFederate token's `aud` was a gateway URL and PingOne accepted it.
+- **What the PingFederate token looked like:** RS256 JWT with `kid` in the header and `typ: JWT`; claims `iss`, `aud`, `sub`, `client_id`, `iat`, `exp` (60 minutes), `jti`, `scope`, and an `act` that PingFederate had already emitted as an **object**.
+- **PingFederate settings that made it work:** the token manager has "Publish Keys to the PingFederate JWKS Endpoint" turned on, and the token's `kid` matches a key in `<base>/pf/JWKS`. If PingOne reports `JWT signature verification failed`, check these two first.
+- **Results (one fault at a time):** the real token gave **HTTP 200** with the mapped claims; the same token with a damaged signature gave HTTP 400 `JWT signature verification failed` (so PingOne really verifies against the PingFederate keys); a different trusted-issuer string gave HTTP 400 `The token issuer does not match any Trusted Issuer assigned to the application`.
+- **Nested claims can be mapped:** `${#root.context.requestData.actorToken.act.sub}` returned the nested value. `.iss` and `.client_id` also work.
+- Everything created in PingOne was deleted afterwards, and the throwaway PingFederate client was removed.
+
 ## Which switches fit which issuer
 
 From the comparison sheet and the vendors' sample tokens: Okta, Auth0 and RFC 9068 tokens have `iat` and `exp` but **no `nbf`**; Microsoft v1.0 and v2.0 have `iat`, `nbf` and `exp`; a PingFederate client-credentials token has `exp` only. So `nbfRequired` would refuse Okta, Auth0 and PingFederate tokens, and `iatRequired` would refuse the PingFederate client-credentials token. The Exchange tab of this app lets you try this (its refusals reuse the texts above).
