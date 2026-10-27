@@ -9,9 +9,10 @@
       "healthPath": "/api/health",
       "composeFile": "p1-third-party-exchange/docker-compose.yml",
       "composeOverlays": [],
-      "notes": "Host-run: ./scripts/run.sh (port 5200). Mock only: no tenant, no credentials, no outbound network. Docker: HOST_PORT=5200 docker compose up --build -d (published on 127.0.0.1 only). The catalog id D98 is PROVISIONAL: the owner confirms it before the shelf entry is merged. The capability is feature-flagged and the guide gives no flag name. A third-party SUBJECT token is not simulated.",
+      "notes": "Host-run: ./scripts/run.sh (port 5200). Mock only: no tenant, no credentials, no outbound network. Docker: HOST_PORT=5200 docker compose up --build -d (published on 127.0.0.1 only). Catalog id D98 confirmed by the owner 2026-10-27. The capability is feature-flagged and the guide gives no flag name. A third-party SUBJECT token is not simulated. The hosted Mock card is the SE build (MODE=mock, hosted simulation); the real mockUrl is set only in the shelf's local file, never in this repo (placeholder host here).",
       "catalogId": "D98",
-      "where": "local"
+      "where": "both",
+      "mockUrl": "https://third-party-exchange.mock.example"
     }
   ]
 }

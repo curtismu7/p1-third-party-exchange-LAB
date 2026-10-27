@@ -9,4 +9,4 @@ Demo-tier standalone app: PingOne token exchange (RFC 8693) with a third-party s
 - Honesty: a third-party SUBJECT token is not simulated; the feature flag has no name in the guide, do not invent one; check order when several faults occur is UNVERIFIED.
 - Web: `web/src/App.jsx` (tabs, presenter, Reset incl. diagram positions, X-Workspace via `workspace.js`), `components/ExchangePanel|DiagramTab|CompareTab|SetupTab|AdminTab|TalkTrack`; the setup guide is rendered by `Markdown.jsx` with no raw HTML. The diagram is `PatternDiagram` + `hooks/useDiagramStepper` + `components/diagram/*` (copied from the scaffold, never imported across repos); `studio.js` only maps the diagram-studio document.
 - Trace: `server/src/trace.js` builds W3C traceparent for every mock hop in `/api/exchange`.
-- Open: catalog id D98 is provisional; GitHub repo, runner and SE deploy need owner approval.
+- Catalog id D98 confirmed 2026-10-27. Repo, runner and the SE mock build are live (host in the shared hosts doc, not in this repo). Further SE deploys follow the SE rules (verify by content; owner approval for the first deploy only).

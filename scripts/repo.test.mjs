@@ -22,7 +22,7 @@ test('the shelf entry is valid and portable: relative composeFile, loopback url,
   assert.equal(e.kind, 'Demo');
   assert.equal(e.healthPath, '/api/health');
   assert.match(e.url, /^http:\/\/localhost:52\d\d$/);
-  assert.equal(e.catalogId, 'D98', 'provisional catalog id');
+  assert.equal(e.catalogId, 'D98', 'owner-confirmed catalog id (2026-10-27)');
   assert.ok(!path.isAbsolute(e.composeFile), 'composeFile must be relative or a placeholder');
   assert.ok(!/\/Users\//.test(JSON.stringify(e)), 'no absolute home path');
 });

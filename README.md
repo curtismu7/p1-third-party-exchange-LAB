@@ -58,5 +58,5 @@ Every claim carries one of five labels in the UI: **MEASURED** (run live against
 
 ## Open
 
-- Catalog id **D98 is PROVISIONAL** (the owner confirms before the shelf entry is merged). GitHub repo, runner and the first SE deploy need owner approval. Hosted SE build: the same image with `MODE=mock` and `P1TPX_HOSTED=1`; manifests in `k8s/`, not deployed.
+- Catalog id **D98** (confirmed by the owner 2026-10-27). The private repo, runner and first SE deploy were approved and done 2026-10-27; the hosted build is live on the SE cluster (its host is recorded in the shared hosts doc, not in this repo). Hosted SE build: the same image with `MODE=mock` and `P1TPX_HOSTED=1`; manifests in `k8s/`, not deployed.
 - Rule 17: the diagrams are diagram-studio/1 data (`server/diagrams/`) validated at start-up; the web renders them with ReactFlow.
