@@ -2,6 +2,7 @@ import Json from "./Json";
 import Tag from "./Tag";
 import TokenBlock from "./TokenBlock";
 import WireItem from "./WireItem";
+import { ChecksTable, MappingList, Verdict } from "./ResultParts";
 import { DecodeSwitch } from "./DecodeContext";
 import { jwksFromWire } from "../tokenDecode";
 import { visible } from "../safeText";
@@ -74,15 +75,8 @@ export default function ExchangePanel({ config, sel, setSel, run, fail }) {
         <>
           <section className="panel panel--wide" aria-labelledby="res-h">
             <h2 id="res-h">Result</h2>
-            <div className={`verdict verdict--${run.ok ? "allow" : "deny"}`} role="status" data-testid="verdict" data-ok={String(run.ok)}>
-              <strong className="verdict__word">{run.ok ? "Exchange succeeds: a token is issued" : `Exchange refused: ${visible(run.failed.label)}`}</strong>{" "}
-              <Tag kind={run.ok ? "unverified" : "measured"} evidence={ev} />
-              <p className="muted">The checks come from the guide and the refusal texts were <strong>measured</strong> live against PingOne on 2026-10-27; this app only copies them. The order PingOne evaluates the checks in when several fail is <strong>UNVERIFIED</strong>.</p>
-            </div>
-            <table className="tbl" data-testid="checks" aria-label="Checks on the third-party token">
-              <thead><tr><th scope="col">Check</th><th scope="col">Detail</th><th scope="col">Result</th></tr></thead>
-              <tbody>{run.checks.map((c) => <tr key={c.id} data-check={c.id}><td>{c.label}</td><td><code>{visible(c.detail)}</code></td><td className={c.ok ? "ok" : "bad"}>{c.ok ? "pass" : "fail"}</td></tr>)}</tbody>
-            </table>
+            <Verdict run={run} ev={ev} />
+            <ChecksTable run={run} />
           </section>
           <section className="panel panel--wide" aria-labelledby="req-h">
             <h2 id="req-h">The calls of this run, in full <Tag kind="measured" evidence={ev} /></h2>
@@ -103,12 +97,7 @@ export default function ExchangePanel({ config, sel, setSel, run, fail }) {
           </section>
           <section className="panel" aria-labelledby="map-h">
             <h2 id="map-h">Attribute mapping on the custom resource</h2>
-            <ul className="facts" data-testid="maps">
-              {run.mapping.map((m) => (
-                <li key={m.id}><Tag kind={m.evidence} evidence={ev} /> {m.label}. {m.note}{" "}
-                  <strong>{m.present ? "Source claim present." : `The token has no ${m.source}, so no claim is added.`}</strong></li>
-              ))}
-            </ul>
+            <MappingList run={run} ev={ev} />
             <h3>{run.ok ? "Issued access token" : "Nothing issued"}</h3>
             {run.ok ? <TokenBlock label="Issued access token (PingOne, MOCK)" token={run.jwts.issued} testId="issued" /> : <p className="muted" data-testid="nothing-issued">The exchange was refused, so no token is issued.</p>}
           </section>

@@ -2,45 +2,33 @@
 
 <!-- Generated from server/src/exchangeData.js by `npm run talk-track`. Do not edit by hand. -->
 
-## Say first
+## The idea
 
-Everything here is simulated. The tokens, the checks and the issued token are invented by this app. The capability is behind a feature flag and the guide gives no flag name, so check with Ping that it is on in your environment. Northwind Retail is a made-up customer.
+Everything here is simulated: the tokens, the checks and the issued token are invented by this app. Northwind Retail is a made-up customer. PingOne token exchange used to accept only tokens from the same environment. Now orders-app can present a PingOne user token as the subject and a JWT from another issuer as the actor, with actor_token_type urn:ietf:params:oauth:token-type:jwt. The capability is behind a feature flag and the guide gives no flag name, so check with Ping that it is on in your environment. Four things to set up: trust, assign, map, send.
 
-## What it does
+## Pick an issuer
 
-PingOne token exchange used to accept only tokens from the same environment. With this capability orders-app can present a PingOne user token as the subject and a JWT from another issuer as the actor, with actor_token_type urn:ietf:params:oauth:token-type:jwt. The guide says so (GUIDE); the request shape and the PingOne error texts we show were MEASURED live on 2026-10-27, and the order PingOne evaluates checks in is UNVERIFIED.
+Pick PingFederate, another PingOne environment, Okta, Auth0, an RFC 9068 issuer or Microsoft. The sample token is shown whole and decoded: a real RS256 JWT signed by a mock key. Notice which time claims it has. The guide labels the first two samples GUIDE; the rest are vendor samples (SAMPLE).
 
-## Four steps
+## Set the trust
 
-Define a trusted issuer, assign it to an OIDC non-worker application, map claims on the custom resource address, then send the exchange. The Setup guide tab has the same steps with every GUIDE and UNVERIFIED label.
+The admin defines a trusted issuer (its inline JWKS, which claims must be present, clock skew up to 60 seconds, maximum future validity, audiences) and assigns it to an OIDC non-worker application. The request body on screen is the real POST /trustedIssuers. The nbf trap: pick Okta and turn on nbf required: it is refused, because an Okta token has no nbf. Microsoft passes, because Entra tokens carry nbf.
 
-## The nbf trap
+## Send it
 
-Pick Okta and turn on nbf required: it is refused with the text PingOne returns (Missing nbf claim), because an Okta token has no nbf. Pick Microsoft and it passes, because Entra tokens carry nbf. The same switch, a different answer, decided by the third-party token.
+One request. Walk the sequence: the app gets a PingOne token, gets the third-party token, sends both, PingOne verifies the actor signature against the trusted issuer keys and runs its checks, then reads the attribute mapping on the custom resource address. Every call is shown whole on the Wire tab, with a curl for each. The request shape was measured live; the order PingOne evaluates checks in is UNVERIFIED.
 
-## Claim mapping
+## Read the result
 
-The attribute mapping on the custom resource reads a claim from the actor token. Each vendor names the calling application differently: client_id, azp, cid or appid. If the source claim is absent, the mapped claim is simply missing from the issued token.
+Success gives a PingOne token with the mapped claim, for example act.sub from the actor sub. A refusal shows PingOne's own text, measured live (HTTP 400 invalid_request), with a fake Correlation ID. If the source claim is absent the mapped claim is simply missing, and the token is still issued.
 
-## The wire
+## Compare
 
-The Wire tab shows every HTTP call whole: the admin calls that set it up (trusted issuer with its inline JWKS, resource, scope, attributes, application, grant, assignment) and the three runtime calls. Full URLs, every header, the exact bodies, a curl for each, and the complete tokens with Copy buttons. The tokens are real RS256 JWTs signed by mock keys, the actor token verifies against the JWKS in the trusted-issuer call, and a bad-signature token really fails. All hosts end in .example and every credential is a MOCK one.
+The calling application has a different claim name at each issuer: client_id, azp, cid or appid. That is the claim you map into act.sub, so it is the one to check first.
 
-## Live mode (owner-run)
+## What to know
 
-Only on the owner's machine, never in the hosted build: MODE=live with P1TPX_ALLOW_LIVE=1. It writes to a real PingOne environment: it creates throwaway p1x-live-* objects with its own key, runs the scenarios, compares each result with what this mock predicted (MATCH or MISMATCH), and deletes everything again. The worker secret is write-only and is never shown.
-
-## Real exchange tabs
-
-Two tabs make a REAL exchange. In every build, including this hosted one, Real exchange (your browser) sends the request from your own browser straight to your own PingOne: nothing goes through this server, and the secret and tokens stay in the page. On the owner's machine only, Real exchange (local) sends one real exchange from the local server, optionally fetching the third-party token for you; it creates and deletes nothing. Your PingFederate token works as the third-party token if PingOne trusts its issuer and the PingFederate access token manager publishes its keys.
-
-## What we do not claim
-
-A third-party SUBJECT token is not simulated: the guide only shows actor tokens, and live it leaves the issued token with no sub. The refusal texts are what PingOne returned; the order it evaluates checks in when several things are wrong is UNVERIFIED. Clock skew (0 to 60 seconds) and maximum future validity are simulated as measured.
-
-## Close
-
-Reset clears your workspace and puts the diagram back. Nothing was sent anywhere.
+A third-party SUBJECT token is not simulated: the guide only shows actor tokens, and live it leaves the issued token with no sub. Clock skew (0 to 60 seconds) and maximum future validity are simulated as measured. To try it for real: Real exchange (your browser) works in every build and sends from your own browser to your own PingOne, nothing through this server; Real exchange (local) and the Live mode exist only on the owner's machine and write to a real environment. Your PingFederate token works as the third-party token if PingOne trusts its issuer and the PingFederate access token manager publishes its keys. Reset clears your workspace and puts the diagram back.
 
 ## The issuers to try
 

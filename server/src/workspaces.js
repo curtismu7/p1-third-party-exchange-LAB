@@ -28,6 +28,8 @@ export function createWorkspaces({ max = 500, ttlMs = 60 * 60 * 1000, now = Date
     },
     // The latest FULL run (wire and setup) of a workspace, for GET /api/wire?runId=. One per workspace keeps the store small.
     setLast(id, runId, payload) { lasts.set(id, { runId, payload, at: now() }); while (lasts.size > max) lasts.delete(lasts.keys().next().value); },
+    // The newest full run of a workspace (GET /api/wire with no runId), if it is still held.
+    latest(id) { const v = lasts.get(id); return v && now() - v.at <= ttlMs ? v.payload : null; },
     last(id, runId) { const v = lasts.get(id); return v && v.runId === runId && now() - v.at <= ttlMs ? v.payload : null; },
     reset(id) { map.delete(id); lasts.delete(id); },
     size() { return map.size; },

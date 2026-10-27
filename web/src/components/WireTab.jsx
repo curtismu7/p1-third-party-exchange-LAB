@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import WireItem from "./WireItem";
 import { DecodeSwitch } from "./DecodeContext";
 import { jwksFromWire } from "../tokenDecode";
@@ -24,19 +24,32 @@ function DecodeBox() {
 }
 
 // The Wire tab: every call of the current exchange, in full, from GET /api/wire?runId= (the same data POST /api/exchange returned).
-export default function WireTab({ run, evidence, config }) {
+// A run the server no longer holds (a restart, another pod, Reset) is never shown as a bare 404: the tab asks the app to run the
+// exchange again with the CURRENT controls and retries once; only if that also fails does it show a friendly message and a button.
+export default function WireTab({ run, evidence, config, onRefresh, fail }) {
   const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
+  const [state, setState] = useState("loading"); // loading | refreshing | failed | ok
+  const [detail, setDetail] = useState("");
+  const retried = useRef(false);
   const runId = run && run.runId;
   useEffect(() => {
     if (!runId) return undefined;
     let live = true;
-    getJson(`/api/wire?runId=${encodeURIComponent(runId)}`).then((d) => { if (live) { setData(d); setError(null); } }, (e) => { if (live) setError(e.message); });
+    getJson(`/api/wire?runId=${encodeURIComponent(runId)}`).then((d) => { if (live) { setData(d); setState("ok"); retried.current = false; } }, async (e) => {
+      if (!live) return;
+      setDetail(e.message);
+      if (retried.current || !onRefresh) { setState("failed"); return; }
+      retried.current = true; setState("refreshing");
+      const fresh = await onRefresh();
+      if (live && !fresh) setState("failed"); // a fresh run changes runId, which re-runs this effect once
+    });
     return () => { live = false; };
-  }, [runId]);
-  if (!run) return <p className="muted">Loading...</p>;
-  if (error) return <p className="field-error" role="alert">Could not load the wire ({error}).</p>;
-  if (!data) return <p className="muted">Loading...</p>;
+  }, [run]); // eslint-disable-line react-hooks/exhaustive-deps
+  const again = async () => { retried.current = false; setState("refreshing"); const fresh = await onRefresh(); if (!fresh) setState("failed"); };
+  if (fail && !run) return <FriendlyFail detail={fail} onAgain={onRefresh} />;
+  if (!run || state === "loading") return <p className="muted">Loading...</p>;
+  if (state === "refreshing") return <p className="muted" role="status" data-testid="wire-refreshing">Refreshing the run...</p>;
+  if (state === "failed" || !data) return <FriendlyFail detail={detail} onAgain={again} />;
   return (
     <div className="wire" data-testid="wire-tab">
       <section className="panel panel--wide">
@@ -59,5 +72,16 @@ export default function WireTab({ run, evidence, config }) {
       </section>
       <DecodeBox />
     </div>
+  );
+}
+
+function FriendlyFail({ detail, onAgain }) {
+  return (
+    <section className="panel panel--warn" role="alert" data-testid="wire-failed">
+      <h2>The run is not available right now</h2>
+      <p>The server does not have this run any more (it may have restarted). Running the exchange again makes a new one.</p>
+      <p><button type="button" onClick={onAgain} data-testid="wire-again">Run it again</button></p>
+      <details><summary>Details</summary><p className="muted">{detail || "no details"}</p></details>
+    </section>
   );
 }

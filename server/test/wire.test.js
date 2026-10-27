@@ -139,8 +139,15 @@ test('POST /api/exchange returns wire and setup, GET /api/wire?runId= returns th
     assert.deepEqual(w.wire, j.wire);
     assert.deepEqual(w.setup, j.setup);
     assert.equal((await fetch(`${url}/api/wire?runId=${j.runId}`, { headers: { 'x-workspace': 'bob' } })).status, 404, 'another workspace cannot read it');
-    for (const bad of ['', 'zz', '../etc', `${j.runId}0`, '0'.repeat(16)]) assert.equal((await fetch(`${url}/api/wire?runId=${bad}`, { headers: { 'x-workspace': 'alice' } })).status, 404, bad);
+    for (const bad of ['zz', '../etc', `${j.runId}0`, '0'.repeat(16)]) assert.equal((await fetch(`${url}/api/wire?runId=${bad}`, { headers: { 'x-workspace': 'alice' } })).status, 404, bad);
     assert.equal((await fetch(`${url}/api/wire?runId[a]=1`, { headers: { 'x-workspace': 'alice' } })).status, 404);
+    const latest = await (await fetch(`${url}/api/wire`, { headers: { 'x-workspace': 'alice' } })).json();
+    assert.equal(latest.runId, j.runId, 'no runId: the latest run of the workspace');
+    const nf = await fetch(`${url}/api/wire?runId=${'0'.repeat(16)}`, { headers: { 'x-workspace': 'alice' } });
+    assert.deepEqual(await nf.json(), { error: 'run_not_found', hint: 'POST /api/exchange first' });
+    const none = await fetch(`${url}/api/wire`, { headers: { 'x-workspace': 'nobody' } });
+    assert.equal(none.status, 404);
+    assert.equal((await none.json()).error, 'run_not_found');
     await fetch(`${url}/api/reset`, { method: 'POST', headers: { 'content-type': 'application/json', origin: url, 'x-workspace': 'alice' }, body: '{}' });
     assert.equal((await fetch(`${url}/api/wire?runId=${j.runId}`, { headers: { 'x-workspace': 'alice' } })).status, 404, 'Reset clears it');
     assert.equal((await rawHttp(`${url}/api/wire?runId=${j.runId}`, { headers: { host: 'evil.example.invalid' } })).status, 403);

@@ -70,7 +70,7 @@ details { margin: 6px 0; } summary { cursor: pointer; font-size: var(--font-size
 .presenter-say { border: 1px solid var(--th-status-info); background: var(--th-status-info-bg); border-radius: var(--radius-md); padding: 8px 14px; margin-bottom: 12px; }
 .presenter-say p { margin: 4px 0; line-height: 1.5; }
 .pat__title { margin: 0 0 4px; font-size: var(--font-size-lg); }
-.app--presenter { font-size: 18px; } .app--presenter .panel h2 { font-size: var(--font-size-xl); } .app--presenter .lesson, .app--presenter .presenter-say, .app--presenter .verdict__reasons { font-size: var(--font-size-lg); }
+.app--presenter { font-size: 1.125rem; } .app--presenter .panel h2 { font-size: var(--font-size-xl); } .app--presenter .lesson, .app--presenter .presenter-say, .app--presenter .verdict__reasons { font-size: var(--font-size-lg); }
 .app--presenter .json, .app--presenter .tbl { font-size: var(--font-size-base); }
 
 .two { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); margin-top: 8px; }
@@ -124,3 +124,7 @@ label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 .real > .panel--wide { grid-column: 1 / -1; }
 .real select, .real textarea, .real input[type="text"], .real input[type="password"] { width: 100%; max-width: 100%; font: inherit; font-size: var(--font-size-sm); color: var(--th-text); background: var(--th-bg-card); border: 1px solid var(--th-border-strong); border-radius: var(--radius-md); padding: 6px 8px; margin-top: 4px; }
 .inspector h4 { margin: 8px 0 4px; }
+.brand { margin: 0 0 0.25rem; font-weight: 800; font-size: var(--font-size-lg); letter-spacing: -0.02em; } .brand b { color: var(--th-accent); }
+.tabs--primary [role="tab"] { font-weight: 700; }
+.facts li, .walk .card { overflow-wrap: anywhere; }
+.tag { white-space: normal; max-width: 100%; }

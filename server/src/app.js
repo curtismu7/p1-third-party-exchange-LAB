@@ -100,9 +100,12 @@ export function createApp({ health = createHealth(), configFile = CONFIG, hosted
   }));
   // The full wire (and setup calls) of this workspace's latest exchange. Same data as POST /api/exchange returned.
   api.get('/wire', withWorkspace((ws, req, res) => {
-    const id = typeof req.query.runId === 'string' ? req.query.runId : '';
-    const found = /^[0-9a-f]{16}$/.test(id) ? workspaces.last(ws, id) : null;
-    return found ? res.json(found) : res.status(404).json({ error: 'unknown_run' });
+    // No runId: the latest run of this workspace. A runId the server no longer holds (a restart, another pod, Reset) is a 404 whose body
+    // tells the client what to do; the web app recovers by running the exchange again.
+    const given = req.query.runId;
+    const id = typeof given === 'string' ? given : '';
+    const found = given === undefined ? workspaces.latest(ws) : /^[0-9a-f]{16}$/.test(id) ? workspaces.last(ws, id) : null;
+    return found ? res.json(found) : res.status(404).json({ error: 'run_not_found', hint: 'POST /api/exchange first' });
   }));
   api.get('/runs', withWorkspace((ws, _req, res) => res.json(workspaces.runs(ws))));
   // Reset clears this workspace's exchanges only.

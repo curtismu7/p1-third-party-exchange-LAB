@@ -7,3 +7,4 @@
 - Part A: Wire tab, full HTTP calls (setup and runtime), real RS256 mock tokens with a really verified signature, GET /api/wire.
 - Part B: owner-run LIVE mode (local only, never hosted): gate, write-only settings in the shared pingone.json, guarded PingOne client, throwaway p1x-live-* run with cleanup in finally, prediction vs live, loopback stub for tests and proofs.
 - Part C: Real exchange (your browser) in every build, Real exchange (local) in the live build, actor token inspector, issuer metadata check, SSRF guard; inline token decoding on every wire view.
+- Part D: Guided walk landing page (7 steps), Advanced group for the existing tabs, global text-size control (rem tokens), 7-beat talk track.

@@ -22,7 +22,7 @@ const CONFIG = {
   defaults: { expRequired: true, iatRequired: false, nbfRequired: false, audiences: "", clockSkew: 0, maxFutureValidity: 0, assigned: true },
   steps: [{ n: 1, title: "Define a trusted issuer", body: "Name and issuer.", where: "/trustedIssuers", evidence: "guide" }],
   notShown: ["Third-party token as the SUBJECT token."],
-  talkTrack: [{ id: "say-first", title: "Say first", say: "Everything is simulated." }, { id: "nbf", title: "The nbf trap", say: "Pick Okta." }, { id: "setup", title: "Four steps", say: "Setup." }],
+  talkTrack: [{ id: "idea", title: "The idea", say: "Everything is simulated." }, { id: "trust", title: "Set the trust", say: "Pick Okta." }, { id: "result", title: "Read the result", say: "Refusal." }, ...["issuer", "send", "compare", "know"].map((id) => ({ id, title: id, say: `beat ${id}` }))],
 };
 const b64 = (o) => btoa(JSON.stringify(o)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
 const jwt = (claims, kid = "mock-key") => `${b64({ alg: "RS256", typ: "JWT", kid })}.${b64(claims)}.${"S".repeat(342)}`;
@@ -66,16 +66,17 @@ function mockFetch() {
     if (url === "/api/compare") return json({ columns: ["PingOne", "Okta"], rows: [["Issuer", "iss", "iss"], ["Audience", "aud", null]], note: "From the sheet.", evidence: EVIDENCE.sample });
     if (url === "/api/setup") return json(SETUP);
     if (url.startsWith("/api/diagram")) return json(DOC);
+    if (url.startsWith("/api/wire") && override.wire) return override.wire(url);
     if (url.startsWith("/api/wire")) return json({ runId: "0123456789abcdef", wire: [item(10, "cc"), item(11, "vendor-token"), item(12, "exchange")], setup: [item(1, "issuer", { phase: "setup" })] });
     if (url === "/api/live/status") return json({ enabled: true, banner: "LIVE: this writes to a real PingOne environment", stub: true, scenarios: [{ id: "valid", title: "Valid" }, { id: "nbf-required", title: "nbfRequired" }], settings: { environmentId: "aaaaaaaa-1111-4222-8333-bbbbbbbbbbbb", region: "com", clientId: "w1", clientSecret: "set", configured: true, file: "/x/pingone.json" } });
     if (url === "/api/live/settings") { liveSaved = JSON.parse(opts.body); return json({ settings: {} }); }
     if (url === "/api/live/run") { liveRun = JSON.parse(opts.body); return json({ runName: "p1x-live-abc123", error: null, banner: "LIVE", scenarios: [{ id: "valid", title: "Valid", prediction: { status: 200, expect: { act: "a", security: "Class 3", hasSub: true } }, live: { status: 200, summary: { act: "a", security: "Class 3", hasSub: true } }, match: true }, { id: "nbf-required", title: "nbfRequired", prediction: { status: 400, reason: "Missing nbf claim" }, live: { status: 400, description: "Other text" }, match: false }], mismatches: [{ scenario: "nbf-required", field: "error_description", predicted: "Missing nbf claim", live: "Other text" }], cleanup: { ok: true, thisRunClean: true }, wire: [item(1, "issuer", { phase: "setup" })] }); }
     if (url === "/api/reset") return json({ reset: "ok" });
-    if (url === "/api/exchange") return json(runFor(JSON.parse(opts.body)));
+    if (url === "/api/exchange") return json({ ...runFor(JSON.parse(opts.body)), ...(override.runId ? { runId: override.runId() } : {}) });
     return json({}, 404);
   });
 }
-beforeEach(() => { override = {}; mockFetch(); window.location.hash = ""; });
+beforeEach(() => { override = {}; mockFetch(); window.location.hash = "#exchange"; });
 
 const ready = async () => { render(<App />); await screen.findByTestId("vendor-okta"); await screen.findByTestId("verdict"); };
 
@@ -88,7 +89,7 @@ describe("shell", () => {
     expect(ex.opts.headers["x-workspace"]).toMatch(/^[a-z0-9-]{1,40}$/);
   });
   it("has seven tabs including the wire and the setup guide", () => {
-    expect(TABS.map((t) => t.label)).toEqual(["Exchange", "Wire", "Diagram", "Claims compared", "Setup guide", "Admin and limits", "Talk track"]);
+    expect(TABS.map((t) => t.label)).toEqual(["Exchange lab", "Wire", "Diagram", "Claims compared", "Setup guide", "Admin and limits", "Talk track"]);
   });
 });
 
@@ -264,7 +265,7 @@ describe("talk track and presenter mode", () => {
     await ready();
     await userEvent.click(screen.getByRole("tab", { name: "Talk track" }));
     expect(screen.getByTestId("talk-track")).toHaveTextContent("Everything is simulated.");
-    await userEvent.click(screen.getByRole("tab", { name: "Exchange" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Exchange lab" }));
     await userEvent.keyboard("p");
     expect(await screen.findByTestId("presenter-say")).toHaveTextContent("Pick Okta.");
     expect(screen.getByTestId("banner")).toHaveTextContent(/^SIMULATED/);
@@ -288,7 +289,7 @@ describe("banner visibility on every tab, presenter mode and hosted mode", () =>
       expect(screen.getByTestId("banner")).toBeVisible();
       expect(screen.getByTestId("banner")).not.toHaveAttribute("hidden");
     }
-    await userEvent.click(screen.getByRole("tab", { name: "Exchange" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Exchange lab" }));
     await userEvent.keyboard("p");
     await screen.findByTestId("presenter-say");
     expect(screen.getByTestId("banner")).toBeVisible();
@@ -322,13 +323,17 @@ describe("links from the content pack: /#vendor-<id>", () => {
     await waitFor(() => expect(screen.getByTestId("vendor-okta")).toHaveAttribute("aria-pressed", "true"));
     await waitFor(() => expect(screen.getByTestId("actor-payload")).toHaveTextContent("okta.example"));
   });
-  it("an unknown or hostile id keeps the default issuer", async () => {
-    for (const h of ["#vendor-nope", "#vendor-__proto__", "#vendor-" + "a".repeat(80)]) {
+  it("an unknown id keeps the default issuer; a hostile or oversized id is not a vendor link and lands on the walk", async () => {
+    window.location.hash = "#vendor-nope";
+    const { unmount } = render(<App />);
+    await screen.findByTestId("vendor-okta");
+    expect(screen.getByTestId("vendor-pf-cc")).toHaveAttribute("aria-pressed", "true");
+    unmount();
+    for (const h of ["#vendor-__proto__", "#vendor-" + "a".repeat(80)]) {
       window.location.hash = h;
-      const { unmount } = render(<App />);
-      await screen.findByTestId("vendor-okta");
-      expect(screen.getByTestId("vendor-pf-cc")).toHaveAttribute("aria-pressed", "true");
-      unmount();
+      const r = render(<App />);
+      expect(await screen.findByTestId("walk")).toBeInTheDocument();
+      r.unmount();
     }
   });
 });
@@ -384,5 +389,62 @@ describe("live tab (owner-run)", () => {
     expect(screen.getByTestId("live-cleanup-result")).toHaveTextContent("nothing named p1x-live remains");
     expect(screen.getByTestId("banner")).toBeVisible();
     await userEvent.keyboard("{Escape}");
+  });
+});
+
+describe("wire tab recovers from a run the server no longer has", () => {
+  const WIRE = (id) => ({ runId: id, wire: [item(10, "cc"), item(11, "vendor-token"), item(12, "exchange")], setup: [item(1, "issuer", { phase: "setup" })] });
+  const ok = (b) => ({ ok: true, status: 200, json: async () => b });
+  const nf = () => ({ ok: false, status: 404, json: async () => ({ error: "run_not_found", hint: "POST /api/exchange first" }) });
+
+  it("opened first on a fresh workspace (no Exchange visit) it renders the default run's calls with no error", async () => {
+    window.location.hash = "#wire";
+    render(<App />);
+    expect(await screen.findByTestId("wire-tab")).toBeInTheDocument();
+    expect(screen.getByTestId("wire-exchange")).toBeInTheDocument();
+    expect(screen.queryByText(/Could not load the wire/)).toBeNull();
+    expect(screen.queryByTestId("wire-failed")).toBeNull();
+  });
+  it("after a server restart (the run id is unknown) it refreshes the run with the CURRENT controls and shows the calls, never a 404", async () => {
+    let n = 0;
+    override.runId = () => (n++ === 0 ? "aaaaaaaaaaaaaaaa" : "bbbbbbbbbbbbbbbb");
+    override.wire = (url) => (url.includes("aaaaaaaaaaaaaaaa") ? nf() : ok(WIRE("bbbbbbbbbbbbbbbb")));
+    await ready();
+    await userEvent.click(screen.getByTestId("vendor-okta"));
+    await waitFor(() => expect(calls.filter((c) => c.url === "/api/exchange").length).toBeGreaterThan(1));
+    n = 0; // the server "restarts": the next run it hands out is the first of a new life, the old id is gone
+    override.runId = () => "cccccccccccccccc";
+    override.wire = (url) => (url.includes("cccccccccccccccc") ? ok(WIRE("cccccccccccccccc")) : nf());
+    await userEvent.click(screen.getByRole("tab", { name: "Wire" }));
+    expect(await screen.findByTestId("wire-tab")).toBeInTheDocument();
+    expect(screen.queryByText(/404/)).toBeNull();
+    expect(screen.queryByTestId("wire-failed")).toBeNull();
+    const posts = calls.filter((c) => c.url === "/api/exchange").map((c) => JSON.parse(c.opts.body));
+    expect(posts.at(-1).vendorId).toBe("okta");
+    expect(calls.some((c) => c.url === "/api/wire?runId=cccccccccccccccc")).toBe(true);
+  });
+  it("if the retry also fails it shows a friendly message with a Run it again button and the status in a details line, not the bare code", async () => {
+    override.wire = () => nf();
+    await ready();
+    await userEvent.click(screen.getByRole("tab", { name: "Wire" }));
+    const box = await screen.findByTestId("wire-failed");
+    expect(box).toHaveTextContent("The run is not available right now");
+    expect(box).toHaveTextContent("Run it again");
+    expect(within(box).getByText("Details").closest("details")).toHaveTextContent("HTTP 404");
+    expect(screen.queryByText("Could not load the wire (HTTP 404).")).toBeNull();
+    const before = calls.filter((c) => c.url === "/api/exchange").length;
+    override.wire = (url) => ok(WIRE(url.split("=")[1]));
+    await userEvent.click(screen.getByTestId("wire-again"));
+    expect(await screen.findByTestId("wire-tab")).toBeInTheDocument();
+    expect(calls.filter((c) => c.url === "/api/exchange").length).toBeGreaterThan(before);
+  });
+  it("works in the hosted build too", async () => {
+    override.vendors = async () => ({ ok: true, status: 200, json: async () => ({ ...CONFIG, banner: "HOSTED SIMULATION: x", hosted: true }) });
+    override.wire = (url) => (url.includes("0123456789abcdef") ? nf() : ok(WIRE("zzzzzzzzzzzzzzzz")));
+    override.runId = () => "dddddddddddddddd";
+    window.location.hash = "#wire";
+    render(<App />);
+    expect(await screen.findByTestId("wire-tab")).toBeInTheDocument();
+    expect(screen.getByTestId("banner")).toHaveTextContent(/^HOSTED SIMULATION/);
   });
 });
