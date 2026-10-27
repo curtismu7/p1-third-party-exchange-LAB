@@ -24,6 +24,9 @@ const CONFIG = {
   notShown: ["Third-party token as the SUBJECT token."],
   talkTrack: [{ id: "say-first", title: "Say first", say: "Everything is simulated." }, { id: "nbf", title: "The nbf trap", say: "Pick Okta." }, { id: "setup", title: "Four steps", say: "Setup." }],
 };
+const b64 = (o) => btoa(JSON.stringify(o)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+const jwt = (claims, kid = "mock-key") => `${b64({ alg: "RS256", typ: "JWT", kid })}.${b64(claims)}.${"S".repeat(342)}`;
+const item = (n, key, extra = {}) => ({ n, id: `w${n}`, key, label: `call ${key}`, phase: "runtime", method: "POST", url: `https://auth.pingone.example/x/${key}`, requestHeaders: [{ name: "Host", value: "auth.pingone.example" }], requestBody: "a=b", requestBodyPretty: "a=b", curl: `curl -i -X POST 'https://auth.pingone.example/x/${key}'`, status: 200, statusText: "OK", responseHeaders: [{ name: "Cache-Control", value: "no-store" }], responseBody: "{}", responseBodyPretty: "{}", requestText: `POST /x/${key} HTTP/1.1\nHost: auth.pingone.example\n\na=b`, responseText: "HTTP/1.1 200 OK\nCache-Control: no-store\n\n{}", notes: `notes ${key}`, evidence: "measured", ...extra });
 const hop = (n) => ({ n, from: "app", to: "p1", label: `hop ${n}`, traceparent: `00-${"a".repeat(32)}-${String(n).repeat(16)}-01`, request: `traceparent: 00-${"a".repeat(32)}-${String(n).repeat(16)}-01`, response: "ok" });
 const CHECK = (id, label, ok, detail = "d") => ({ id, label, ok, detail });
 function runFor(body) {
@@ -32,9 +35,10 @@ function runFor(body) {
   const failed = checks.find((c) => !c.ok) || null;
   return {
     ok: !failed, failed, checks, vendor: { id: body.vendorId, name: body.vendorId === "okta" ? "Okta" : "PingFederate: client credentials" }, request: "POST https://auth.pingone.example/x/as/token",
-    subject: { sub: "user-1" }, actor: { iss: "https://okta.example/x" }, mapping: [{ id: "act", label: "act.sub from cid", evidence: "derived", note: "n", source: "cid", present: true, claim: { act: { sub: "app" } } }],
+    subject: { sub: "user-1" }, actor: { iss: "https://okta.example/x" }, runId: "0123456789abcdef", signature: { ok: true, reason: "signature verified" },
+    wire: [item(10, "cc"), item(11, "vendor-token"), item(12, "exchange")], setup: [item(1, "issuer", { phase: "setup" }), item(5, "attr-1", { phase: "setup" })], mapping: [{ id: "act", label: "act.sub from cid", evidence: "derived", note: "n", source: "cid", present: true, claim: { act: { sub: "app" } } }],
     issued: failed ? null : { act: { sub: "app" }, sub: "user-1" }, error: failed ? { status: 400, error: "invalid_request", error_description: "The request could not be completed. The request was malformed or invalid.: Missing nbf claim; the Trusted Issuer requires a not-before time" } : null,
-    jwts: { subject: "a.b.MOCK-SIGNATURE-NOT-VALID", actor: "a.b.MOCK-SIGNATURE-NOT-VALID", issued: failed ? null : "a.b.MOCK-SIGNATURE-NOT-VALID" }, traceId: "a".repeat(32), hops: [hop(1), hop(2)],
+    jwts: { subject: jwt({ sub: "user-1" }, "mock-p1-key"), actor: jwt({ iss: "https://okta.example/x" }), issued: failed ? null : jwt({ act: { sub: "app" } }, "mock-p1-key") }, traceId: "a".repeat(32), hops: [hop(1), hop(2)],
   };
 }
 const DOC = {
@@ -42,7 +46,7 @@ const DOC = {
   groups: { actor: { label: "A", color: "dark" } },
   nodes: [{ id: "app", label: "Application (orders-app)", group: "actor", x: 0, y: 0 }, { id: "p1", label: "PingOne token endpoint", group: "gateway", x: 300, y: 0 }],
   edges: [{ source: "app", target: "p1", label: "Token exchange" }, { source: "p1", target: "app", label: "Access token", dashed: true }],
-  steps: [{ title: "Token exchange request", what: "The app sends the exchange.", why: "POST /token\nactor_token_type=jwt", edges: [0] }, { title: "Access token issued", what: "PingOne issues.", why: "{ \"act\": 1 }", edges: [1] }],
+  steps: [{ title: "Token exchange request", what: "The app sends the exchange.", why: "Wire call 12 request: POST x", hop: "exchange:req", edges: [0] }, { title: "Access token issued", what: "PingOne issues.", why: "{ \"act\": 1 }", edges: [1] }],
 };
 const SETUP = {
   markdown: "# Setup guide\n\nIntro with `code` and **bold**.\n\n<script>alert(1)</script> <img src=x onerror=alert(2)>\n\n- one\n- two\n\n| A | B |\n|---|---|\n| 1 | <b>2</b> |\n\n```\nPOST /x <i>raw</i>\n```\n",
@@ -61,6 +65,7 @@ function mockFetch() {
     if (url === "/api/compare") return json({ columns: ["PingOne", "Okta"], rows: [["Issuer", "iss", "iss"], ["Audience", "aud", null]], note: "From the sheet.", evidence: EVIDENCE.sample });
     if (url === "/api/setup") return json(SETUP);
     if (url.startsWith("/api/diagram")) return json(DOC);
+    if (url.startsWith("/api/wire")) return json({ runId: "0123456789abcdef", wire: [item(10, "cc"), item(11, "vendor-token"), item(12, "exchange")], setup: [item(1, "issuer", { phase: "setup" })] });
     if (url === "/api/reset") return json({ reset: "ok" });
     if (url === "/api/exchange") return json(runFor(JSON.parse(opts.body)));
     return json({}, 404);
@@ -78,8 +83,8 @@ describe("shell", () => {
     const ex = calls.find((c) => c.url === "/api/exchange");
     expect(ex.opts.headers["x-workspace"]).toMatch(/^[a-z0-9-]{1,40}$/);
   });
-  it("has six tabs including the setup guide", () => {
-    expect(TABS.map((t) => t.label)).toEqual(["Exchange", "Diagram", "Claims compared", "Setup guide", "Admin and limits", "Talk track"]);
+  it("has seven tabs including the wire and the setup guide", () => {
+    expect(TABS.map((t) => t.label)).toEqual(["Exchange", "Wire", "Diagram", "Claims compared", "Setup guide", "Admin and limits", "Talk track"]);
   });
 });
 
@@ -89,8 +94,8 @@ describe("exchange tab", () => {
     expect(screen.getByTestId("verdict")).toHaveAttribute("data-ok", "true");
     expect(screen.getByTestId("verdict")).toHaveTextContent("Exchange succeeds");
     expect(within(screen.getByTestId("checks")).getAllByRole("row")).toHaveLength(3);
-    expect(screen.getByTestId("request")).toHaveTextContent("POST https://auth.pingone.example");
-    expect(screen.getByTestId("issued")).toHaveTextContent('"act"');
+    expect(screen.getByTestId("wire-exchange-request")).toHaveTextContent("POST /x/exchange");
+    expect(screen.getByTestId("issued-payload")).toHaveTextContent('"act"');
     expect(screen.getByTestId("subject")).toBeInTheDocument();
     expect(screen.getByTestId("actor")).toBeInTheDocument();
     expect(screen.getByTestId("maps")).toHaveTextContent("OUR CHOICE");
@@ -102,7 +107,7 @@ describe("exchange tab", () => {
   it("requiring nbf flips Okta to refused with the failed check named; Reset restores the default", async () => {
     await ready();
     await userEvent.click(screen.getByTestId("vendor-okta"));
-    await waitFor(() => expect(screen.getByTestId("actor")).toHaveTextContent("okta.example"));
+    await waitFor(() => expect(screen.getByTestId("actor-payload")).toHaveTextContent("okta.example"));
     expect(screen.getByTestId("verdict")).toHaveAttribute("data-ok", "true");
     await userEvent.click(screen.getByTestId("nbf"));
     await waitFor(() => expect(screen.getByTestId("verdict")).toHaveAttribute("data-ok", "false"));
@@ -141,6 +146,21 @@ describe("exchange tab", () => {
       expect(last.settings.maxFutureValidity).toBe(3600);
     });
   });
+  it("shows every token whole: raw string, header and payload decoded from it, and Copy buttons that copy the full string", async () => {
+    await ready();
+    const raw = screen.getByTestId("actor-raw").textContent;
+    expect(raw.split(".")).toHaveLength(3);
+    expect(raw.split(".")[2]).toHaveLength(342);
+    expect(raw).not.toMatch(/\.\.\.|…/);
+    expect(screen.getByTestId("actor-payload")).toHaveTextContent("okta.example");
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    await userEvent.click(screen.getByTestId("actor-copy"));
+    expect(writeText).toHaveBeenCalledWith(raw);
+    expect(await screen.findByText("Copied")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Copy request|Copy curl|Copy response/ }).length).toBeGreaterThanOrEqual(9);
+    expect(screen.getByTestId("signature-line")).toHaveTextContent("verified for real");
+  });
   it("a server 400 shows an inline error, not a crash", async () => {
     await ready();
     const orig = globalThis.fetch;
@@ -162,14 +182,15 @@ describe("diagram tab", () => {
     expect(screen.getByLabelText(/Step time/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /simulate/i }));
     expect(await screen.findByTestId("pattern-now")).toHaveTextContent("Step 1: Token exchange request");
-    expect(screen.getByTestId("pattern-payload")).toHaveTextContent("actor_token_type=jwt");
+    expect(screen.getByTestId("pattern-payload")).toHaveTextContent("POST /x/exchange HTTP/1.1");
+    expect(screen.getByTestId("pattern-payload")).toHaveTextContent("Host: auth.pingone.example");
     await userEvent.click(screen.getByTestId("reset"));
     await waitFor(() => expect(screen.queryByTestId("pattern-now")).toBeNull());
   });
   it("fromStudio only maps the document: boxes, arrows, order, titles and payloads come from it", () => {
     const p = fromStudio(DOC);
     expect(p.nodes.map((n) => n.id)).toEqual(["app", "p1"]);
-    expect(p.steps.map((s) => [s.from, s.to, s.label, s.title, s.payload])).toEqual([["app", "p1", "Token exchange", "Token exchange request", "POST /token\nactor_token_type=jwt"], ["p1", "app", "Access token", "Access token issued", "{ \"act\": 1 }"]]);
+    expect(p.steps.map((s) => [s.from, s.to, s.label, s.title, s.payload])).toEqual([["app", "p1", "Token exchange", "Token exchange request", "Wire call 12 request: POST x"], ["p1", "app", "Access token", "Access token issued", "{ \"act\": 1 }"]]);
   });
   it("the diagram query carries every control", () => {
     const q = new URLSearchParams(diagramQuery({ vendorId: "okta", tokenState: "expired", assigned: false, settings: { expRequired: true, iatRequired: false, nbfRequired: true, audiences: "a b", clockSkew: 30, maxFutureValidity: 3600 } }, "health"));
@@ -178,6 +199,25 @@ describe("diagram tab", () => {
   it("nudges the two labels of a back-and-forth pair in opposite directions and leaves the rest alone", () => {
     expect(labelOffsets([{ from: "a", to: "b" }, { from: "b", to: "a" }, { from: "a", to: "c" }])).toEqual([-16, 16, 0]);
     expect(labelOffsets([])).toEqual([]);
+  });
+});
+
+describe("wire tab", () => {
+  it("lists the setup and runtime calls in full from /api/wire, shows whole tokens, and the decode box reads the pasted string", async () => {
+    await ready();
+    await userEvent.click(screen.getByRole("tab", { name: "Wire" }));
+    const tab = await screen.findByTestId("wire-tab");
+    expect(calls.some((c) => c.url === "/api/wire?runId=0123456789abcdef")).toBe(true);
+    expect(within(tab).getByTestId("wire-exchange")).toBeInTheDocument();
+    expect(within(tab).getByTestId("wire-issuer")).toBeInTheDocument();
+    expect(within(tab).getByTestId("wire-token-actor-raw").textContent.split(".")).toHaveLength(3);
+    expect(screen.getByTestId("banner")).toBeVisible();
+    await userEvent.click(screen.getByTestId("decode-input"));
+    await userEvent.paste(within(tab).getByTestId("wire-token-actor-raw").textContent);
+    expect(screen.getByTestId("decode-out")).toHaveTextContent("okta.example");
+    await userEvent.clear(screen.getByTestId("decode-input"));
+    await userEvent.paste("not a token");
+    expect(screen.getByTestId("decode-error")).toBeInTheDocument();
   });
 });
 
@@ -276,7 +316,7 @@ describe("links from the content pack: /#vendor-<id>", () => {
     window.location.hash = "#vendor-okta";
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("vendor-okta")).toHaveAttribute("aria-pressed", "true"));
-    await waitFor(() => expect(screen.getByTestId("actor")).toHaveTextContent("okta.example"));
+    await waitFor(() => expect(screen.getByTestId("actor-payload")).toHaveTextContent("okta.example"));
   });
   it("an unknown or hostile id keeps the default issuer", async () => {
     for (const h of ["#vendor-nope", "#vendor-__proto__", "#vendor-" + "a".repeat(80)]) {

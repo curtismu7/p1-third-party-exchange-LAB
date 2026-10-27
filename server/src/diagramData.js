@@ -45,10 +45,29 @@ export function dynamicValues(run) {
   };
 }
 
+/** Full text of one wire reference. hop = "key", "key:req", "key:res" or "attrs" (every attribute call). Setup and runtime items both qualify. */
+export function hopText(run, hop) {
+  const all = [...run.setup, ...run.wire];
+  const [key, part] = String(hop).split(':');
+  const items = key === 'attrs' ? all.filter((i) => i.key.startsWith('attr-')) : all.filter((i) => i.key === key);
+  return items.map((i) => (part === 'req' ? i.requestText : part === 'res' ? i.responseText : `${i.requestText}\n\n${i.responseText}`)).join('\n\n');
+}
+
+export function hopSummary(run, hop) {
+  const [key, part] = String(hop).split(':');
+  const all = [...run.setup, ...run.wire];
+  const items = key === 'attrs' ? all.filter((i) => i.key.startsWith('attr-')) : all.filter((i) => i.key === key);
+  const what = part === 'req' ? ' request' : part === 'res' ? ' response' : '';
+  return items.map((i) => `Wire call ${i.n}${what}: ${i.method} ${i.url}${part === 'res' ? ` -> ${i.status} ${i.statusText}` : ''}. Full text: Wire tab.`).join('\n');
+}
+
 /** The diagram-studio/1 document for one run: the accepted or the refused path, with the cast and run values filled in. */
 export function buildDiagram(cast, run) {
   const name = run.ok ? 'exchange-success' : 'exchange-refused';
   const doc = fillDeep(DOCS[name], { ...cast, ...dynamicValues(run) });
+  // A step that points at a wire call (hop) names the call in `why` (the studio caps `why` at 600 characters, and a token must never be
+  // cut), and the web shows the FULL wire text for that hop from run.wire. Nothing is truncated anywhere.
+  for (const s of doc.steps) if (s.hop) { const t = hopSummary(run, s.hop); if (t) s.why = t; }
   const problems = validateDiagram(doc);
   if (problems.length) throw new Error(`diagram ${name} filled is not valid: ${problems.join('; ')}`);
   return doc;

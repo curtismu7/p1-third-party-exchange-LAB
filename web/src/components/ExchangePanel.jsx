@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
 import Json from "./Json";
 import Tag from "./Tag";
-import { exchange } from "../api";
+import TokenBlock from "./TokenBlock";
+import WireItem from "./WireItem";
 import { visible } from "../safeText";
 
 function Hops({ hops, traceId }) {
@@ -21,23 +21,10 @@ function Hops({ hops, traceId }) {
 
 const numberOf = (v) => (/^\d{1,10}$/.test(v) ? Number(v) : 0);
 
-export default function ExchangePanel({ config, sel, setSel, resetSignal }) {
-  const [run, setRun] = useState(null);
-  const [fail, setFail] = useState(null);
+export default function ExchangePanel({ config, sel, setSel, run, fail }) {
   const vendor = config.vendors.find((v) => v.id === sel.vendorId) || config.vendors[0];
   const ev = config.evidence;
   const setSetting = (k, v) => setSel((s) => ({ ...s, settings: { ...s.settings, [k]: v } }));
-
-  // One mock exchange per change, debounced so typing in the audience box does not flood the server.
-  useEffect(() => {
-    let live = true;
-    const t = setTimeout(async () => {
-      const res = await exchange({ vendorId: sel.vendorId, tokenState: sel.tokenState, settings: sel.settings, assigned: sel.assigned }).catch(() => ({ ok: false, status: 0, body: {} }));
-      if (!live) return;
-      if (res.ok) { setRun(res.body); setFail(null); } else setFail(`Could not run the exchange (${res.body.error || res.status}${res.body.detail ? `: ${res.body.detail}` : ""}).`);
-    }, 120);
-    return () => { live = false; clearTimeout(t); };
-  }, [sel, resetSignal]);
 
   return (
     <div className="exch">
@@ -95,21 +82,21 @@ export default function ExchangePanel({ config, sel, setSel, resetSignal }) {
               <tbody>{run.checks.map((c) => <tr key={c.id} data-check={c.id}><td>{c.label}</td><td><code>{visible(c.detail)}</code></td><td className={c.ok ? "ok" : "bad"}>{c.ok ? "pass" : "fail"}</td></tr>)}</tbody>
             </table>
           </section>
-          <section className="panel" aria-labelledby="req-h">
-            <h2 id="req-h">Token request <Tag kind="measured" evidence={ev} /></h2>
-            <Json value={run.request} label="Token request" testId="request" />
-            {run.error && (<><h3>Error body (text MEASURED live, HTTP {run.error.status}) <Tag kind="measured" evidence={ev} /></h3><Json value={run.error} label="PingOne error response" testId="error-body" /></>)}
+          <section className="panel panel--wide" aria-labelledby="req-h">
+            <h2 id="req-h">The calls of this run, in full <Tag kind="measured" evidence={ev} /></h2>
+            <p className="muted">The same data as the Wire tab. Full URLs, every header, the exact bodies and the whole tokens; nothing is abbreviated.</p>
+            {run.wire.map((i, k) => <WireItem key={i.id} item={i} evidence={ev} open={k === run.wire.length - 1} />)}
+            {run.error && (<><h3>Error body (text MEASURED live, HTTP {run.error.status}) <Tag kind="measured" evidence={ev} /></h3><Json value={{ error: run.error.error, error_description: run.error.error_description }} label="PingOne error response" testId="error-body" /></>)}
           </section>
           <section className="panel" aria-labelledby="sub-h">
-            <h2 id="sub-h">Subject token (PingOne, placeholder values)</h2>
+            <h2 id="sub-h">Subject token (PingOne, MOCK)</h2>
             <p className="tag tag--warn">{config.tokenLabel}</p>
-            <Json value={run.subject} label="Subject token claims" testId="subject" />
-            <details><summary>As a mock JWT (never verifiable)</summary><Json value={run.jwts.subject} label="Mock subject JWT" /></details>
+            <TokenBlock label="Subject token" token={run.jwts.subject} testId="subject" />
           </section>
           <section className="panel" aria-labelledby="act-h">
             <h2 id="act-h">Actor token: {run.vendor.name}</h2>
-            <Json value={run.actor} label="Actor token claims" testId="actor" />
-            <details><summary>As a mock JWT (never verifiable)</summary><Json value={run.jwts.actor} label="Mock actor JWT" /></details>
+            <TokenBlock label="Actor token" token={run.jwts.actor} testId="actor" />
+            <p className="muted" data-testid="signature-line">Signature check: {run.signature.ok ? "verified for real" : "FAILED for real"} against the JWKS posted in the trusted-issuer call ({run.signature.reason}).</p>
           </section>
           <section className="panel" aria-labelledby="map-h">
             <h2 id="map-h">Attribute mapping on the custom resource</h2>
@@ -120,7 +107,7 @@ export default function ExchangePanel({ config, sel, setSel, resetSignal }) {
               ))}
             </ul>
             <h3>{run.ok ? "Issued access token" : "Nothing issued"}</h3>
-            {run.ok ? <><Json value={run.issued} label="Issued token claims" testId="issued" /><details><summary>As a mock JWT (never verifiable)</summary><Json value={run.jwts.issued} label="Mock issued JWT" /></details></> : <p className="muted" data-testid="nothing-issued">The exchange was refused, so no token is issued.</p>}
+            {run.ok ? <TokenBlock label="Issued access token (PingOne, MOCK)" token={run.jwts.issued} testId="issued" /> : <p className="muted" data-testid="nothing-issued">The exchange was refused, so no token is issued.</p>}
           </section>
           <section className="panel panel--wide"><Hops hops={run.hops} traceId={run.traceId} /></section>
         </>

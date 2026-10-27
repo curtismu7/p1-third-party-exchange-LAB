@@ -6,7 +6,7 @@ import { DEFAULT_CAST } from '../src/cast.js';
 test('every doctor check passes on a clean default environment', async () => {
   const checks = await runChecks({ env: {} });
   assert.ok(allPassed(checks), JSON.stringify(checks.filter((c) => c.level === 'fail')));
-  for (const id of ['node', 'bind', 'port-range', 'exchanges', 'nbf-trap', 'facts-labelled', 'story-tokens', 'verticals', 'diagrams', 'story-hosts', 'story-keys', 'netguard', 'tenant']) {
+  for (const id of ['node', 'bind', 'port-range', 'exchanges', 'nbf-trap', 'wire', 'facts-labelled', 'story-tokens', 'verticals', 'diagrams', 'story-hosts', 'story-keys', 'netguard', 'tenant']) {
     assert.ok(checks.some((c) => c.id === id), id);
   }
 });

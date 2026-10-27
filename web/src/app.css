@@ -92,3 +92,17 @@ label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 .panel--wide { grid-column: 1 / -1; }
 .panel ul { padding-left: 18px; line-height: 1.5; font-size: var(--font-size-sm); }
 .panel h2, .panel h3 { overflow-wrap: anywhere; }
+.json--wrap, .pat-json--wrap { white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-all; overflow-x: hidden; }
+.json--raw { font-size: var(--font-size-2xs); }
+.copy { padding: 2px 8px; font-size: var(--font-size-2xs); margin-left: 4px; }
+.token { border: 1px solid var(--th-border); border-radius: var(--radius-md); padding: 8px 10px; margin: 8px 0; min-width: 0; }
+.token__bar { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.token__bar strong { margin-right: 8px; }
+.wire-item { border: 1px solid var(--th-border); border-radius: var(--radius-md); padding: 6px 10px; margin: 8px 0; min-width: 0; }
+.wire-item summary { overflow-wrap: anywhere; line-height: 1.6; }
+.wire-item summary code { word-break: break-all; }
+.wire-item h4 { margin: 10px 0 4px; font-size: var(--font-size-sm); }
+.wire-cols { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
+.wire-cols > div { min-width: 0; }
+.wire { display: grid; gap: 12px; }
+.ok { color: var(--th-ok-text); font-weight: 700; } .bad { color: var(--th-deny-text); font-weight: 700; }

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { rawHttp, withServer } from './helpers.js';
+import { verifyJwt } from '../src/jwt.js';
 
 test('GET /api/health answers demo-health/1, ready and offline', async () => {
   await withServer(async (url) => {
@@ -108,13 +109,14 @@ test('POST /api/exchange: the default exchange succeeds, with checks, request, t
     assert.equal(j.checks.length, 8);
     assert.equal(j.error, null);
     assert.ok(j.checks.every((c) => c.ok));
-    assert.match(j.request, /actor_token_type=urn:ietf:params:oauth:token-type:jwt/);
+    assert.match(j.request, /actor_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Ajwt/);
     assert.deepEqual(j.issued.act, { sub: 'cc_client' });
     assert.equal(j.issued.aud[0], 'https://api.northwind.example/address');
     assert.equal(j.subject.sub, '22222222-2222-2222-2222-222222222222');
     assert.equal(j.actor.iss, 'https://pf.vendor.example:9031');
     assert.match(j.jwtLabel, /MOCK/);
-    for (const t of Object.values(j.jwts)) assert.ok(t.endsWith('.MOCK-SIGNATURE-NOT-VALID'));
+    for (const t of Object.values(j.jwts)) assert.equal(t.split('.').length, 3);
+    assert.equal(verifyJwt(j.jwts.actor, JSON.parse(j.jwks)).ok, true);
     assert.equal(j.workspace, 'default');
   });
 });
@@ -126,7 +128,9 @@ test('requiring nbf flips Okta (no nbf) to refused, Microsoft (has nbf) stays ac
     assert.equal(okta.ok, false);
     assert.equal(okta.failed.id, 'nbf');
     assert.equal(okta.issued, null);
-    assert.deepEqual(okta.error, { status: 400, error: 'invalid_request', error_description: 'The request could not be completed. The request was malformed or invalid.: Missing nbf claim; the Trusted Issuer requires a not-before time' });
+    assert.equal(okta.error.status, 400);
+    assert.equal(okta.error.error, 'invalid_request');
+    assert.match(okta.error.error_description, /^The request could not be completed\. The request was malformed or invalid\.: Missing nbf claim; the Trusted Issuer requires a not-before time \(Correlation ID: [\w-]+\)$/);
     assert.equal((await run('ms1', { nbfRequired: true })).ok, true);
     assert.equal((await run('ms2', { nbfRequired: true })).ok, true);
     for (const id of ['pf-cc', 'pf-oidc', 'p1', 'auth0', 'rfc9068']) assert.equal((await run(id, { nbfRequired: true })).failed.id, 'nbf', id);
@@ -247,7 +251,8 @@ test('GET /api/diagram serves a diagram-studio/1 document for the run: accepted 
     assert.equal(bad.id, 'exchange-refused');
     assert.equal(bad.steps.length, 7);
     assert.match(bad.steps[6].title, /nbf present and reached/);
-    assert.match(bad.steps[6].why, /Missing nbf claim; the Trusted Issuer requires a not-before time/);
+    assert.match(bad.steps[6].why, /Wire call \d+ response: POST .* -> 400 Bad Request/);
+    assert.equal(bad.steps[6].hop, 'exchange:res');
     for (const q of ['?vendorId=nope', '?vendorId=okta&nbfRequired=maybe', '?vendorId=okta&x=1', '?vendorId[a]=1', '']) assert.equal((await fetch(`${url}/api/diagram${q}`)).status, 400, q);
     assert.ok(!/\{\{\w+\}\}/.test(JSON.stringify(ok) + JSON.stringify(bad)));
   });

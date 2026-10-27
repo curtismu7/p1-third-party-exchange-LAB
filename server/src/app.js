@@ -14,7 +14,8 @@ import { ExchangeInputError, inputFromQuery, normalizeInput, runExchange } from 
 import { buildDiagram } from './diagramData.js';
 import { buildSetup } from './setup.js';
 import { buildTalkTrack } from './talk.js';
-import { buildHops, newTrace } from './trace.js';
+import { randomBytes } from 'node:crypto';
+import { buildHops, formatTraceparent, newTrace } from './trace.js';
 import { createWorkspaces, workspaceFrom } from './workspaces.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -72,16 +73,27 @@ export function createApp({ health = createHealth(), configFile = CONFIG, hosted
   api.post('/exchange', withWorkspace((ws, req, res) => {
     try {
       const cast = castFor(req);
-      const run = runExchange(normalizeInput(req.body), { now: now(), cast });
-      workspaces.record(ws, { vendorId: run.vendor.id, tokenState: run.tokenState, ok: run.ok, failed: run.failed ? run.failed.id : null });
+      const input = normalizeInput(req.body);
       const trace = newTrace(req.headers.traceparent);
+      const traceparents = [trace.span(), trace.span(), trace.span()].map((id) => formatTraceparent(trace.traceId, id));
+      const run = runExchange(input, { now: now(), cast, traceparents });
+      const runId = randomBytes(8).toString('hex');
+      workspaces.record(ws, { runId, vendorId: run.vendor.id, tokenState: run.tokenState, ok: run.ok, failed: run.failed ? run.failed.id : null });
       const hops = buildHops({ trace, run });
       res.set('traceparent', hops[0].traceparent);
-      return res.json({ ...run, workspace: ws, traceId: trace.traceId, hops });
+      const body = { ...run, workspace: ws, runId, traceId: trace.traceId, hops };
+      workspaces.setLast(ws, runId, { runId, setup: run.setup, wire: run.wire });
+      return res.json(body);
     } catch (e) {
       if (e instanceof ExchangeInputError) return res.status(400).json({ error: e.code, detail: e.message });
       throw e;
     }
+  }));
+  // The full wire (and setup calls) of this workspace's latest exchange. Same data as POST /api/exchange returned.
+  api.get('/wire', withWorkspace((ws, req, res) => {
+    const id = typeof req.query.runId === 'string' ? req.query.runId : '';
+    const found = /^[0-9a-f]{16}$/.test(id) ? workspaces.last(ws, id) : null;
+    return found ? res.json(found) : res.status(404).json({ error: 'unknown_run' });
   }));
   api.get('/runs', withWorkspace((ws, _req, res) => res.json(workspaces.runs(ws))));
   // Reset clears this workspace's exchanges only.

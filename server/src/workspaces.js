@@ -11,6 +11,7 @@ export function workspaceFrom(req) {
 }
 
 export function createWorkspaces({ max = 500, ttlMs = 60 * 60 * 1000, now = Date.now } = {}) {
+  const lasts = new Map();
   const map = new Map(); // id -> { runs, at }; insertion order = oldest first
   const sweep = () => {
     const t = now();
@@ -25,7 +26,10 @@ export function createWorkspaces({ max = 500, ttlMs = 60 * 60 * 1000, now = Date
       map.delete(id); map.set(id, { runs, at: now() }); sweep();
       return this.runs(id);
     },
-    reset(id) { map.delete(id); },
+    // The latest FULL run (wire and setup) of a workspace, for GET /api/wire?runId=. One per workspace keeps the store small.
+    setLast(id, runId, payload) { lasts.set(id, { runId, payload, at: now() }); while (lasts.size > max) lasts.delete(lasts.keys().next().value); },
+    last(id, runId) { const v = lasts.get(id); return v && v.runId === runId && now() - v.at <= ttlMs ? v.payload : null; },
+    reset(id) { map.delete(id); lasts.delete(id); },
     size() { return map.size; },
   };
 }

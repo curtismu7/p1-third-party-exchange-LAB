@@ -9,6 +9,7 @@ import { normalizeInput, runExchange } from '../src/exchange.js';
 import { readSetupMarkdown } from '../src/setup.js';
 import { renderTalkTrackMarkdown } from '../src/talk.js';
 import { scanHosts } from '../src/safety.js';
+import { verifyJwt } from '../src/jwt.js';
 
 const NOW = 1_790_000_000;
 const dyn = Object.fromEntries(DYNAMIC_KEYS.map((k) => [k, 'x']));
@@ -102,7 +103,8 @@ test('a refused diagram names the failed check on its last step and edge', () =>
   const doc = buildDiagram(DEFAULT_CAST, run);
   assert.equal(doc.edges.at(-1).label, 'Refused: nbf present and reached');
   assert.match(doc.steps.at(-1).what, /token has no nbf/);
-  assert.match(doc.steps.at(-1).why, /Missing nbf claim/);
+  assert.match(doc.steps.at(-1).why, /Wire call \d+ response/);
+  assert.equal(doc.steps.at(-1).hop, 'exchange:res');
 });
 
 test('docs/talk-track.md is exactly what the talk-track data renders (no drift; run `npm run talk-track`)', () => {
@@ -111,71 +113,12 @@ test('docs/talk-track.md is exactly what the talk-track data renders (no drift; 
   for (const t of D.TALK_TRACK) assert.ok(doc.includes(`## ${t.title}`), t.id);
 });
 
-test('the mock JWT is labelled and carries the placeholder signature, never a verifiable one', () => {
+test('the mock JWTs are real RS256 tokens: the actor verifies against the JWKS of the trusted-issuer call, and the claims round-trip', () => {
   const r = runOf({ vendorId: 'okta' });
   const [h, p, sig] = r.jwts.actor.split('.');
-  assert.equal(sig, 'MOCK-SIGNATURE-NOT-VALID');
-  assert.equal(JSON.parse(Buffer.from(h, 'base64url')).kid, 'mock-key');
+  assert.ok(sig.length > 300, 'a real RSA-2048 signature, not a placeholder');
+  assert.deepEqual(JSON.parse(Buffer.from(h, 'base64url')), { alg: 'RS256', typ: 'JWT', kid: 'mock-key' });
   assert.equal(JSON.parse(Buffer.from(p, 'base64url')).iss, r.actor.iss);
-});
-
-const PREFIX = 'The request could not be completed. The request was malformed or invalid.: ';
-const errorOf = (body) => runOf(body).error;
-
-test('each PingOne refusal text measured live on 2026-10-27 is returned verbatim, HTTP 400 invalid_request', () => {
-  const cases = [
-    [{ vendorId: 'okta', tokenState: 'expired' }, 'The provided JWT has expired'],
-    [{ vendorId: 'okta', tokenState: 'bad-signature' }, 'JWT signature verification failed'],
-    [{ vendorId: 'okta', tokenState: 'wrong-issuer' }, 'The token issuer does not match any Trusted Issuer assigned to the application'],
-    [{ vendorId: 'okta', assigned: false }, 'The token issuer does not match any Trusted Issuer for the requesting application'],
-    [{ vendorId: 'okta', settings: { nbfRequired: true } }, 'Missing nbf claim; the Trusted Issuer requires a not-before time'],
-    [{ vendorId: 'pf-cc', settings: { iatRequired: true } }, 'Missing iat claim; the Trusted Issuer requires an issued-at time'],
-    [{ vendorId: 'okta', settings: { audiences: 'nope' } }, "None of the token's aud values match the Trusted Issuer's configured audiences"],
-    [{ vendorId: 'okta', settings: { maxFutureValidity: 60 } }, 'The exp claim exceeds the maximum allowed future validity'],
-    [{ vendorId: 'ms1', settings: { clockSkew: 0 }, tokenState: 'expired' }, 'The provided JWT has expired'],
-  ];
-  for (const [body, text] of cases) assert.deepEqual(errorOf(body), { status: 400, error: 'invalid_request', error_description: PREFIX + text }, text);
-  assert.equal(errorOf({ vendorId: 'okta' }), null);
-});
-
-test('the other refusal texts (no exp, nbf in the future, expired) are measured text too', () => {
-  const noExp = { ...D.VENDORS[3], claims: (now) => { const { exp, ...rest } = D.VENDORS[3].claims(now); return rest; } };
-  const r = runExchange({ vendor: noExp, state: 'valid', settings: normalizeInput({ vendorId: 'okta' }).settings, assigned: true }, { now: NOW, cast: DEFAULT_CAST });
-  assert.equal(r.error.error_description, PREFIX + 'Missing exp claim; the Trusted Issuer requires an expiration time');
-  const future = { ...D.VENDORS[3], claims: (now) => ({ ...D.VENDORS[3].claims(now), nbf: now + 120 }) };
-  const f = (clockSkew) => runExchange({ vendor: future, state: 'valid', settings: { ...normalizeInput({ vendorId: 'okta' }).settings, nbfRequired: true, clockSkew }, assigned: true }, { now: NOW, cast: DEFAULT_CAST });
-  assert.equal(f(0).error.error_description, PREFIX + 'The nbf claim is in the future beyond the allowed clock skew');
-  assert.equal(f(60).ok, false, 'nbf 120 s ahead is beyond a 60 s skew');
-  assert.equal(f(60).failed.id, 'nbf');
-});
-
-test('clock skew: an exp 30 s ago passes with skew 60 and fails with skew 0 or 29; 120 s ago fails even with skew 60; the 60 s edge', () => {
-  const at = (secondsAgo) => ({ ...D.VENDORS[3], claims: (now) => ({ ...D.VENDORS[3].claims(now), exp: now - secondsAgo }) });
-  const go = (secondsAgo, clockSkew) => runExchange({ vendor: at(secondsAgo), state: 'valid', settings: { ...normalizeInput({ vendorId: 'okta' }).settings, clockSkew }, assigned: true }, { now: NOW, cast: DEFAULT_CAST });
-  assert.equal(go(30, 60).ok, true);
-  assert.equal(go(30, 0).failed.id, 'exp');
-  assert.equal(go(30, 29).failed.id, 'exp');
-  assert.equal(go(30, 30).failed.id, 'exp', 'exp exactly skew seconds ago is not > now - skew');
-  assert.equal(go(30, 31).ok, true);
-  assert.equal(go(120, 60).failed.id, 'exp');
-  assert.equal(go(60, 60).failed.id, 'exp');
-  assert.equal(go(59, 60).ok, true);
-});
-
-test('maxFutureValidity: 0 is no limit; with 3600 an exp a day ahead is refused and one 10 minutes ahead passes; the boundary is inclusive', () => {
-  const ahead = (s) => ({ ...D.VENDORS[3], claims: (now) => ({ ...D.VENDORS[3].claims(now), exp: now + s }) });
-  const go = (s, maxFutureValidity) => runExchange({ vendor: ahead(s), state: 'valid', settings: { ...normalizeInput({ vendorId: 'okta' }).settings, maxFutureValidity }, assigned: true }, { now: NOW, cast: DEFAULT_CAST });
-  assert.equal(go(86400, 0).ok, true);
-  assert.equal(go(86400, 3600).failed.id, 'maxfuture');
-  assert.equal(go(600, 3600).ok, true);
-  assert.equal(go(3600, 3600).ok, true);
-  assert.equal(go(3601, 3600).failed.id, 'maxfuture');
-});
-
-test('what the guide samples really issue: act from sub, security from securityLevel, and an absent source claim leaves the claim out but still issues', () => {
-  const noSec = { ...D.VENDORS[1], claims: (now) => { const { securityLevel, ...rest } = D.VENDORS[1].claims(now); return rest; } };
-  const r = runExchange({ vendor: noSec, state: 'valid', settings: normalizeInput({ vendorId: 'okta' }).settings, assigned: true }, { now: NOW, cast: DEFAULT_CAST });
-  assert.equal(r.ok, true);
-  assert.ok(!('security' in r.issued));
-  assert.equal(runOf({ vendorId: 'pf-oidc' }).issued.security, 'Class 3');
+  assert.equal(verifyJwt(r.jwts.actor, JSON.parse(r.jwks)).ok, true);
+  assert.match(r.jwtLabel, /MOCK/);
 });

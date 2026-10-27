@@ -76,7 +76,7 @@
     {
       "source": "p1",
       "target": "vendor",
-      "label": "Fetch JWKS"
+      "label": "Use issuer keys"
     },
     {
       "source": "vendor",
@@ -94,11 +94,12 @@
   "steps": [
     {
       "title": "Subject token from PingOne",
-      "what": "{{castApp}} signs the user in at PingOne (authorization code flow) and holds a PingOne access token: the subject token.",
+      "what": "{{castApp}} gets a PingOne access token with client_credentials: the subject token. A signed-in user's token works the same way; the live run used client credentials (UNVERIFIED: which claims a client-credentials token carries).",
       "why": "{{subjectJson}}",
       "edges": [
         0
-      ]
+      ],
+      "hop": "cc"
     },
     {
       "title": "Ask the issuer for a token",
@@ -106,7 +107,8 @@
       "why": "{{vendorName}}\n{{vendorIssuer}}",
       "edges": [
         1
-      ]
+      ],
+      "hop": "vendor-token:req"
     },
     {
       "title": "Third-party JWT comes back",
@@ -114,7 +116,8 @@
       "why": "{{actorJson}}",
       "edges": [
         2
-      ]
+      ],
+      "hop": "vendor-token:res"
     },
     {
       "title": "Token exchange request",
@@ -122,23 +125,26 @@
       "why": "{{requestText}}",
       "edges": [
         3
-      ]
+      ],
+      "hop": "exchange:req"
     },
     {
-      "title": "PingOne asks for the issuer keys",
-      "what": "PingOne fetches the trusted issuer's JWKS to verify the actor token's signature. The order of checks here is ours (UNVERIFIED).",
+      "title": "PingOne uses the issuer keys",
+      "what": "PingOne verifies the actor token's signature against the key set of the trusted issuer: the inline JWKS configured in the trusted-issuer call (or fetched from the JWKS URL when configured that way). The order of checks here is ours (UNVERIFIED).",
       "why": "GET <JWKS URL of the trusted issuer>\nkeys for {{vendorIssuer}}",
       "edges": [
         4
-      ]
+      ],
+      "hop": "issuer:req"
     },
     {
-      "title": "Issuer keys",
-      "what": "The JWKS answers. PingOne now runs its checks: assignment, issuer, signature, exp, iat, nbf, audience.",
-      "why": "JWKS of {{vendorIssuer}} (mock)",
+      "title": "Keys of the trusted issuer",
+      "what": "The key set the trusted issuer was created with. The signature check is REAL here: a valid token verifies and a bad-signature token fails against this JWKS. PingOne now runs its checks: assignment, issuer, signature, exp, iat, nbf, audience.",
+      "why": "JWKS (mock)",
       "edges": [
         5
-      ]
+      ],
+      "hop": "issuer:res"
     },
     {
       "title": "Refused: {{failedLabel}}",
@@ -146,7 +152,8 @@
       "why": "{{refusalJson}}",
       "edges": [
         6
-      ]
+      ],
+      "hop": "exchange:res"
     }
   ]
 }

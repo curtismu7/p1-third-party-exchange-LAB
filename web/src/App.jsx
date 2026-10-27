@@ -5,10 +5,12 @@ import CompareTab from "./components/CompareTab";
 import SetupTab from "./components/SetupTab";
 import AdminTab from "./components/AdminTab";
 import TalkTrack from "./components/TalkTrack";
-import { getJson, resetWorkspace } from "./api";
+import WireTab from "./components/WireTab";
+import { exchange, getJson, resetWorkspace } from "./api";
 
 export const TABS = [
   { id: "exchange", label: "Exchange" },
+  { id: "wire", label: "Wire" },
   { id: "diagram", label: "Diagram" },
   { id: "compare", label: "Claims compared" },
   { id: "setup", label: "Setup guide" },
@@ -16,7 +18,7 @@ export const TABS = [
   { id: "talk", label: "Talk track" },
 ];
 // Which talk-track items presenter mode shows on each tab.
-const SAY = { exchange: ["say-first", "what", "nbf", "mapping", "limits"], diagram: ["what"], compare: ["mapping"], setup: ["setup"], admin: ["limits"] };
+const SAY = { exchange: ["say-first", "what", "nbf", "mapping", "limits"], wire: ["wire"], diagram: ["what"], compare: ["mapping"], setup: ["setup"], admin: ["limits"] };
 // The banner is never blank and never claims "not hosted" before it knows: until /api/info or /api/vendors answers (or if both fail)
 // it says both, honestly.
 const TAIL = "Nothing here calls PingOne, a third-party issuer or any tenant.";
@@ -44,9 +46,22 @@ export default function App() {
   const [presenter, setPresenter] = useState(false);
   const [resetSignal, setResetSignal] = useState(0);
   const [resetMsg, setResetMsg] = useState("");
+  const [run, setRun] = useState(null);
+  const [fail, setFail] = useState(null);
   const tabsRef = useRef(null);
   const wantVendor = useRef(hashParts().vendor);
 
+  // One mock exchange per change of the controls, debounced so typing in the audience box does not flood the server. The result is
+  // shared by the Exchange, Wire and Diagram tabs.
+  useEffect(() => {
+    let live = true;
+    const t = setTimeout(async () => {
+      const res = await exchange({ vendorId: sel.vendorId, tokenState: sel.tokenState, settings: sel.settings, assigned: sel.assigned }).catch(() => ({ ok: false, status: 0, body: {} }));
+      if (!live) return;
+      if (res.ok) { setRun(res.body); setFail(null); } else setFail(`Could not run the exchange (${res.body.error || res.status}${res.body.detail ? `: ${res.body.detail}` : ""}).`);
+    }, 120);
+    return () => { live = false; clearTimeout(t); };
+  }, [sel, resetSignal]);
   useEffect(() => { getJson("/api/info").then(setInfo, () => setInfo(null)); }, []);
   useEffect(() => {
     getJson(`/api/vendors?vertical=${encodeURIComponent(vertical)}`).then((j) => {
@@ -142,8 +157,9 @@ export default function App() {
                   {config.talkTrack.filter((t) => (SAY[tab] || []).includes(t.id)).map((t) => <p key={t.id}><strong>{t.title}.</strong> {t.say}</p>)}
                 </aside>
               )}
-              {tab === "exchange" && <ExchangePanel config={config} sel={sel} setSel={setSel} resetSignal={resetSignal} />}
-              {tab === "diagram" && <DiagramTab sel={sel} vertical={vertical} resetSignal={resetSignal} />}
+              {tab === "exchange" && <ExchangePanel config={config} sel={sel} setSel={setSel} run={run} fail={fail} />}
+              {tab === "wire" && <WireTab run={run} evidence={config.evidence} config={config} />}
+              {tab === "diagram" && <DiagramTab sel={sel} vertical={vertical} resetSignal={resetSignal} run={run} />}
               {tab === "compare" && <CompareTab evidence={config.evidence} />}
               {tab === "setup" && <SetupTab />}
               {tab === "admin" && <AdminTab evidence={config.evidence} />}

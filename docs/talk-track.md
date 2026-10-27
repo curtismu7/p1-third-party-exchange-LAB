@@ -22,6 +22,10 @@ Pick Okta and turn on nbf required: it is refused with the text PingOne returns 
 
 The attribute mapping on the custom resource reads a claim from the actor token. Each vendor names the calling application differently: client_id, azp, cid or appid. If the source claim is absent, the mapped claim is simply missing from the issued token.
 
+## The wire
+
+The Wire tab shows every HTTP call whole: the admin calls that set it up (trusted issuer with its inline JWKS, resource, scope, attributes, application, grant, assignment) and the three runtime calls. Full URLs, every header, the exact bodies, a curl for each, and the complete tokens with Copy buttons. The tokens are real RS256 JWTs signed by mock keys, the actor token verifies against the JWKS in the trusted-issuer call, and a bad-signature token really fails. All hosts end in .example and every credential is a MOCK one.
+
 ## What we do not claim
 
 A third-party SUBJECT token is not simulated: the guide only shows actor tokens, and live it leaves the issued token with no sub. The refusal texts are what PingOne returned; the order it evaluates checks in when several things are wrong is UNVERIFIED. Clock skew (0 to 60 seconds) and maximum future validity are simulated as measured.

@@ -7,9 +7,9 @@
 3. **Claim mapping** on the custom resource (`act.sub` from the actor `sub`, `security` from `securityLevel`).
 4. The **token exchange** with `actor_token_type=urn:ietf:params:oauth:token-type:jwt`: the checks, the request, the subject, actor and issued tokens, and on a refusal the PingOne error body.
 
-Tabs: Exchange, Diagram (ReactFlow sequence with Simulate, speed, movable boxes and Reset), Claims compared, Setup guide (`docs/setup.md`), Admin and limits, Talk track. Presenter mode (`P`, `Esc` leaves). A banner on every tab, in presenter mode too, says SIMULATED (or HOSTED SIMULATION in the SE build).
+Tabs: Exchange, Wire (every HTTP call in full: the setup calls and the runtime calls, full URLs, every header, exact bodies, a curl and Copy button for each, whole tokens, a decode box), Diagram (ReactFlow sequence with Simulate, speed, movable boxes and Reset), Claims compared, Setup guide (`docs/setup.md`), Admin and limits, Talk track. Presenter mode (`P`, `Esc` leaves). A banner on every tab, in presenter mode too, says SIMULATED (or HOSTED SIMULATION in the SE build).
 
-Mock only. Every host ends in `.example`, ids are obviously fake, and the app makes no outbound network request (a netguard blocks them and tests prove it). It needs no tenant, no credentials and holds no client secret. Tokens are MOCK-ISSUED, shown raw for education and never verifiable.
+Mock only. Every host ends in `.example`, ids are obviously fake, and the app makes no outbound network request (a netguard blocks them and tests prove it). It needs no tenant, no credentials and holds no client secret. Tokens are MOCK-ISSUED and shown raw and whole for education: real RS256 JWTs signed by RSA keys that exist only in the server process (the actor token verifies against the JWKS in the trusted-issuer call; a bad-signature token really fails), so they open nothing anywhere.
 
 ## Run
 
@@ -34,7 +34,8 @@ Port range 5200-5249 (default 5200). `GET /api/health` answers `demo-health/1`.
 | Endpoint | |
 | --- | --- |
 | `GET /api/vendors?vertical=retail\|health\|finance` | banner, issuers, evidence labels, defaults, steps, what is not shown, talk track |
-| `POST /api/exchange` | `{vendorId, tokenState?, settings?{expRequired, iatRequired, nbfRequired, audiences, clockSkew, maxFutureValidity}, assigned?}`: checks, request, subject / actor / issued claims, mapping results, MOCK JWTs, `error` on refusal, `hops` and `traceId`; a valid incoming `traceparent` continues its trace |
+| `POST /api/exchange` | `{vendorId, tokenState?, settings?{expRequired, iatRequired, nbfRequired, audiences, clockSkew, maxFutureValidity}, assigned?}`: checks, subject / actor / issued claims, mapping results, real RS256 MOCK JWTs, `wire` and `setup` (full HTTP calls), `error` on refusal, `hops` and `traceId`; a valid incoming `traceparent` continues its trace |
+| `GET /api/wire?runId=` | the `wire` (runtime) and `setup` (admin) calls of this workspace's latest exchange, as `POST /api/exchange` returned them; each item: n, id, key, label, phase, method, url, requestHeaders, requestBody, curl, status, statusText, responseHeaders, responseBody(+Pretty), requestText, responseText, notes, evidence |
 | `GET /api/compare` | the claims comparison sheet |
 | `GET /api/setup` | the setup guide Markdown, steps, admin facts, what is not shown |
 | `GET /api/diagram?vendorId=&tokenState=&...` | a `diagram-studio/1` document for that run (accepted or refused path) |

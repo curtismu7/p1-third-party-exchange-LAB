@@ -1,11 +1,13 @@
 // Pure logic of the mock: no I/O, no clocks (the caller passes `now`), no eval. Hostile input is bounded and walked
 // iteratively (Node 22 has a small stack). The checks and their settings come from the GUIDE; the refusal texts were MEASURED
 // live against PingOne (2026-10-27) and are copied here; the ORDER of the checks is ours (UNVERIFIED).
-import { Buffer } from 'node:buffer';
 import { fill } from './cast.js';
+import { KIDS, badKey, p1Key, thirdPartyJwks, thirdPartyJwksString, thirdPartyKey } from './keys.js';
+import { signJwt, verifyJwt } from './jwt.js';
+import { buildWire, mockWorkerJwt } from './wire.js';
 import { cleanText } from './safety.js';
 import {
-  ACCESS_TYPE, APP_CLIENT_ID, GRANT_TYPE, JWT_TYPE, MAX_CLOCK_SKEW, MAX_FUTURE_VALIDITY_LIMIT, P1_ISSUER, P1_TOKEN_URL, RESOURCE_AUD, RESOURCE_SCOPE, TOKEN_STATES,
+  MAX_CLOCK_SKEW, MAX_FUTURE_VALIDITY_LIMIT, P1_ISSUER, RESOURCE_AUD, RESOURCE_SCOPE, TOKEN_STATES,
   TRUSTED_ISSUER_DEFAULTS, VENDORS, subjectClaims,
 } from './exchangeData.js';
 
@@ -115,7 +117,9 @@ export function stateClaims(vendor, state, now) {
 // this app only copies it. The ORDER PingOne evaluates the checks in is UNVERIFIED: only one fault at a time was tested.
 const P1_ERROR_PREFIX = 'The request could not be completed. The request was malformed or invalid.: ';
 
-export function validateExchange({ vendor, state, settings, assigned, now }) {
+export function validateExchange({ vendor, state, settings, assigned, now, signatureOk }) {
+  // signatureOk: the result of REALLY verifying the actor JWT against the issuer JWKS (runExchange does it). Callers that have no JWT may omit it.
+  const sigOk = signatureOk === undefined ? state !== 'bad-signature' : signatureOk;
   const claims = stateClaims(vendor, state, now);
   const aud = audList(claims.aud);
   const wanted = settings.audiences;
@@ -124,7 +128,7 @@ export function validateExchange({ vendor, state, settings, assigned, now }) {
   const checks = [
     { id: 'assigned', label: 'Trusted issuer is assigned to the application', ok: assigned, detail: assigned ? 'assigned' : 'not assigned to the calling application', message: 'The token issuer does not match any Trusted Issuer for the requesting application' },
     { id: 'issuer', label: 'iss equals the trusted issuer', ok: claims.iss === vendor.issuer, detail: `token iss: ${claims.iss}`, message: 'The token issuer does not match any Trusted Issuer assigned to the application' },
-    { id: 'signature', label: 'Signature verifies against the issuer JWKS', ok: state !== 'bad-signature', detail: state === 'bad-signature' ? 'signature does not match any key in the JWKS' : 'verified against JWKS (mock)', message: 'JWT signature verification failed' },
+    { id: 'signature', label: 'Signature verifies against the issuer JWKS', ok: sigOk, detail: sigOk ? 'verified against the JWKS (RS256, a real signature check)' : 'signature does not match any key in the JWKS', message: 'JWT signature verification failed' },
     { id: 'exp', label: settings.expRequired ? 'exp present and not past' : 'exp not required', ok: claims.exp === undefined ? !settings.expRequired : claims.exp > now - skew, detail: claims.exp === undefined ? 'token has no exp' : claims.exp > now - skew ? 'in the future' : 'in the past', message: claims.exp === undefined ? 'Missing exp claim; the Trusted Issuer requires an expiration time' : 'The provided JWT has expired' },
     { id: 'maxfuture', label: maxFuture ? `exp no more than ${maxFuture}s ahead` : 'maximum future validity off', ok: !maxFuture || claims.exp === undefined || claims.exp - now <= maxFuture, detail: claims.exp === undefined ? 'no exp' : `exp is ${claims.exp - now}s ahead`, message: 'The exp claim exceeds the maximum allowed future validity' },
     { id: 'iat', label: settings.iatRequired ? 'iat present' : 'iat not required', ok: !settings.iatRequired || claims.iat !== undefined, detail: claims.iat === undefined ? 'token has no iat' : 'present', message: 'Missing iat claim; the Trusted Issuer requires an issued-at time' },
@@ -150,36 +154,24 @@ export function resultClaims(subject, mapped, now, cast) {
   };
 }
 
-export function requestText(cast) {
-  return [
-    `POST ${P1_TOKEN_URL}`,
-    'Content-Type: application/x-www-form-urlencoded',
-    '',
-    `grant_type=${GRANT_TYPE}`,
-    'subject_token=<PingOne access token>',
-    `subject_token_type=${ACCESS_TYPE}`,
-    'actor_token=<third-party JWT>',
-    `actor_token_type=${JWT_TYPE}`,
-    `scope=${RESOURCE_SCOPE}`,
-    `(client authentication: the application's client id and secret, HTTP Basic, as for any PingOne token request; application ${cast.castApp}, client_id ${APP_CLIENT_ID})`,
-  ].join('\n');
-}
-
-/** Unsigned, labelled mock JWT: header.payload.MOCK-SIGNATURE-NOT-VALID. Never verifiable. */
-export function mockJwt(claims) {
-  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
-  return `${b64({ alg: 'RS256', typ: 'JWT', kid: 'mock-key' })}.${b64(claims)}.MOCK-SIGNATURE-NOT-VALID`;
-}
-
-/** The whole mock exchange for one validated input. */
-export function runExchange(input, { now, cast }) {
+/** The whole mock exchange for one validated input. The tokens are real RS256 JWTs and the signature is really verified. */
+export function runExchange(input, { now, cast, traceparents = [] }) {
   const { vendor, state, settings, assigned } = input;
-  const run = validateExchange({ vendor, state, settings, assigned, now });
+  const claims = stateClaims(vendor, state, now);
+  const actorJwt = signJwt(claims, { privateKey: (state === 'bad-signature' ? badKey() : thirdPartyKey()).privateKey, kid: KIDS.thirdParty });
+  const verification = verifyJwt(actorJwt, thirdPartyJwks());
+  const run = validateExchange({ vendor, state, settings, assigned, now, signatureOk: verification.ok });
   const subject = subjectClaims(now);
   const mapping = vendor.mappings.map((m) => ({ id: m.id, label: m.label, target: m.target, source: m.source, evidence: m.evidence, note: m.note, ...applyMapping(m, run.claims) }));
   const mappedClaim = Object.assign({}, ...mapping.map((m) => m.claim || {}));
   const issued = run.ok ? resultClaims(subject, { claim: mappedClaim }, now, cast) : null;
-  return {
+  const p1 = { privateKey: p1Key().privateKey, kid: KIDS.p1 };
+  const jwts = {
+    subject: signJwt(subject, p1),
+    actor: actorJwt,
+    issued: issued ? signJwt(issued, { ...p1, typ: 'at+jwt' }) : null,
+  };
+  const result = {
     ok: run.ok,
     failed: run.failed,
     checks: run.checks,
@@ -188,14 +180,23 @@ export function runExchange(input, { now, cast }) {
     settings,
     assigned,
     now,
-    request: requestText(cast),
     subject,
     actor: run.claims,
     mapping,
     issued,
-    // PingOne's real refusal text, MEASURED live 2026-10-27 (copied, not fetched). The body is a mock of the response, not a live one.
-    error: run.error,
-    jwtLabel: 'MOCK JWT: unsigned, never verifiable',
-    jwts: { subject: mockJwt(subject), actor: mockJwt(run.claims), issued: issued ? mockJwt(issued) : null },
+    // PingOne's real refusal text, MEASURED live 2026-10-27 (copied, not fetched), plus a fake Correlation ID. The response is a mock.
+    error: null,
+    jwtLabel: 'MOCK JWT: a real RS256 token signed by a per-process mock key; it verifies only against the mock JWKS shown in the setup calls',
+    jwts,
+    jwks: thirdPartyJwksString(),
+    signature: verification,
   };
+  const built = buildWire({ run: { ...result, error: run.error }, vendor, cast, now, workerJwt: mockWorkerJwt(now), traceparents });
+  const { setup, wire } = built;
+  const ex = wire.find((w) => w.key === 'exchange');
+  result.error = built.error;
+  result.request = ex.requestText;
+  result.setup = setup;
+  result.wire = wire;
+  return result;
 }

@@ -5,6 +5,7 @@ import DiagramStepBar from "./DiagramStepBar";
 import { useDiagramStepper } from "../hooks/useDiagramStepper";
 import { REFIT_EVENT, useFitOnResize } from "../hooks/useFitOnResize";
 import { visible } from "../safeText";
+import CopyButton from "./CopyButton";
 import "./PatternDiagram.css";
 
 const FIT = { padding: 0.08 };
@@ -111,7 +112,7 @@ export default function PatternDiagram({ pattern, resetSignal = 0 }) {
         <article className="track__now" data-testid="pattern-now">
           <h3>Step {stepper.step + 1}: {step.title || step.label}</h3>
           <p>{step.say}</p>
-          {step.payload && <pre className="pat-json" tabIndex={0} aria-label="Payload of this step" data-testid="pattern-payload">{visible(step.payload)}</pre>}
+          {step.payload && (<><p className="muted">Payload (the real wire text of this step) <CopyButton text={step.payload} label="Copy payload" /></p><pre className="pat-json pat-json--wrap" tabIndex={0} aria-label="Payload of this step" data-testid="pattern-payload">{visible(step.payload)}</pre></>)}
         </article>
       )}
       <ReactFlowProvider>

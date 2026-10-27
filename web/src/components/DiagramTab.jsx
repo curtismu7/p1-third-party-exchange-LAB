@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import PatternDiagram from "./PatternDiagram";
 import { getJson } from "../api";
 import { fromStudio } from "../studio";
+import { wireHopText } from "../wireHop";
 
 export function diagramQuery(sel, vertical) {
   const q = new URLSearchParams({
@@ -12,16 +13,17 @@ export function diagramQuery(sel, vertical) {
   return q.toString();
 }
 
-export default function DiagramTab({ sel, vertical, resetSignal }) {
-  const [pattern, setPattern] = useState(null);
+export default function DiagramTab({ sel, vertical, resetSignal, run }) {
+  const [doc, setDoc] = useState(null);
   const [error, setError] = useState(null);
   const query = diagramQuery(sel, vertical);
   useEffect(() => {
     let live = true;
-    getJson(`/api/diagram?${query}`).then((d) => { if (live) { setPattern(fromStudio(d)); setError(null); } }, (e) => { if (live) setError(e.message); });
+    getJson(`/api/diagram?${query}`).then((d) => { if (live) { setDoc(d); setError(null); } }, (e) => { if (live) setError(e.message); });
     return () => { live = false; };
   }, [query]);
   if (error) return <p className="field-error" role="alert">Could not load the diagram ({error}).</p>;
-  if (!pattern) return <p className="muted">Loading...</p>;
+  if (!doc) return <p className="muted">Loading...</p>;
+  const pattern = fromStudio(doc, (hop) => wireHopText(run, hop));
   return <PatternDiagram key={query} pattern={pattern} resetSignal={resetSignal} />;
 }
