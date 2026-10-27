@@ -1,0 +1,152 @@
+{
+  "schema": "diagram-studio/1",
+  "id": "exchange-refused",
+  "title": "Token exchange with a third-party actor token: refused",
+  "lede": "{{castApp}} exchanges a PingOne user token plus a {{vendorName}} token. The check '{{failedLabel}}' fails, so PingOne refuses and issues nothing. Mock only. The refusal wording is UNVERIFIED: the guide describes no error responses.",
+  "groups": {
+    "actor": {
+      "label": "Application",
+      "color": "dark"
+    },
+    "idp": {
+      "label": "Third-party issuer (mock)",
+      "color": "blue"
+    },
+    "gateway": {
+      "label": "PingOne token endpoint (mock)",
+      "color": "red"
+    },
+    "resource": {
+      "label": "Custom resource",
+      "color": "grey"
+    }
+  },
+  "nodes": [
+    {
+      "id": "app",
+      "label": "Application ({{castApp}})",
+      "group": "actor",
+      "x": 0,
+      "y": 220
+    },
+    {
+      "id": "vendor",
+      "label": "{{vendorName}}",
+      "group": "idp",
+      "x": 420,
+      "y": 0
+    },
+    {
+      "id": "p1",
+      "label": "PingOne token endpoint",
+      "group": "gateway",
+      "x": 420,
+      "y": 220
+    },
+    {
+      "id": "resource",
+      "label": "Custom resource: attribute mapping",
+      "group": "resource",
+      "x": 420,
+      "y": 440
+    }
+  ],
+  "edges": [
+    {
+      "source": "app",
+      "target": "p1",
+      "label": "Subject token"
+    },
+    {
+      "source": "app",
+      "target": "vendor",
+      "label": "Get actor token"
+    },
+    {
+      "source": "vendor",
+      "target": "app",
+      "label": "Third-party JWT",
+      "dashed": true
+    },
+    {
+      "source": "app",
+      "target": "p1",
+      "label": "Token exchange"
+    },
+    {
+      "source": "p1",
+      "target": "vendor",
+      "label": "Fetch JWKS"
+    },
+    {
+      "source": "vendor",
+      "target": "p1",
+      "label": "Issuer keys",
+      "dashed": true
+    },
+    {
+      "source": "p1",
+      "target": "app",
+      "label": "Refused: {{failedLabel}}",
+      "dashed": true
+    }
+  ],
+  "steps": [
+    {
+      "title": "Subject token from PingOne",
+      "what": "{{castApp}} signs the user in at PingOne (authorization code flow) and holds a PingOne access token: the subject token.",
+      "why": "{{subjectJson}}",
+      "edges": [
+        0
+      ]
+    },
+    {
+      "title": "Ask the issuer for a token",
+      "what": "{{castApp}} also gets a token from {{vendorName}}. This is the actor token. It is signed by that issuer, not by PingOne.",
+      "why": "{{vendorName}}\n{{vendorIssuer}}",
+      "edges": [
+        1
+      ]
+    },
+    {
+      "title": "Third-party JWT comes back",
+      "what": "The actor token, shown decoded. State: {{stateLabel}}.",
+      "why": "{{actorJson}}",
+      "edges": [
+        2
+      ]
+    },
+    {
+      "title": "Token exchange request",
+      "what": "{{castApp}} sends the RFC 8693 exchange with actor_token_type urn:ietf:params:oauth:token-type:jwt. The exact request is UNVERIFIED (the guide shows it as an image).",
+      "why": "{{requestText}}",
+      "edges": [
+        3
+      ]
+    },
+    {
+      "title": "PingOne asks for the issuer keys",
+      "what": "PingOne fetches the trusted issuer's JWKS to verify the actor token's signature. The order of checks here is ours (UNVERIFIED).",
+      "why": "GET <JWKS URL of the trusted issuer>\nkeys for {{vendorIssuer}}",
+      "edges": [
+        4
+      ]
+    },
+    {
+      "title": "Issuer keys",
+      "what": "The JWKS answers. PingOne now runs its checks: assignment, issuer, signature, exp, iat, nbf, audience.",
+      "why": "JWKS of {{vendorIssuer}} (mock)",
+      "edges": [
+        5
+      ]
+    },
+    {
+      "title": "Refused: {{failedLabel}}",
+      "what": "The check '{{failedLabel}}' failed ({{failedDetail}}). No token is issued. The error response is our mock; the guide describes none (UNVERIFIED).",
+      "why": "{{refusalJson}}",
+      "edges": [
+        6
+      ]
+    }
+  ]
+}
