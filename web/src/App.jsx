@@ -48,6 +48,7 @@ const initialSel = (defaults, vendorId) => ({ vendorId: vendorId || FALLBACK.ven
 const hashParts = () => {
   const h = window.location.hash.replace("#", "");
   const w = /^walk(?:=(\d))?$/.exec(h);
+  if (h === "walk=all") return { tab: "walk", step: 0, all: true, vendor: null };
   if (w) { const n = Number(w[1] || 1); return { tab: "walk", step: n >= 1 && n <= STEPS.length ? n - 1 : 0, vendor: null }; }
   if (["live", "realbrowser", "reallocal"].includes(h)) return { tab: h, step: 0, vendor: null };
   const m = /^vendor-([a-z0-9-]{1,40})$/.exec(h);
@@ -62,6 +63,7 @@ function AppInner() {
   const [error, setError] = useState(null);
   const [tab, setTab] = useState(hashParts().tab);
   const [step, setStepState] = useState(hashParts().step);
+  const [allView, setAllViewState] = useState(Boolean(hashParts().all));
   const [lastAdvanced, setLastAdvanced] = useState("exchange");
   const [sel, setSel] = useState(() => initialSel(null, null));
   const [presenter, setPresenter] = useState(false);
@@ -98,7 +100,7 @@ function AppInner() {
   }, [vertical]);
   useEffect(() => {
     const on = () => {
-      const p = hashParts(); setTab(p.tab); if (p.tab === "walk") setStepState(p.step);
+      const p = hashParts(); setTab(p.tab); if (p.tab === "walk") { if (p.all) setAllViewState(true); else { setAllViewState(false); setStepState(p.step); } }
       if (p.vendor && config && config.vendors.some((v) => v.id === p.vendor)) setSel((s) => ({ ...s, vendorId: p.vendor }));
     };
     window.addEventListener("hashchange", on);
@@ -106,8 +108,10 @@ function AppInner() {
   }, [config]);
   const select = (id) => {
     setTab(id); if (id !== "walk") setLastAdvanced(id);
-    try { window.history.replaceState(null, "", id === "walk" ? `#walk=${step + 1}` : `#${id}`); } catch { /* ignore */ }
+    try { window.history.replaceState(null, "", id === "walk" ? (allView ? "#walk=all" : `#walk=${step + 1}`) : `#${id}`); } catch { /* ignore */ }
   };
+  // "See everything on one page": #walk=all. Going back restores the step the visitor was on (step state is kept untouched).
+  const setAllView = (on) => { setAllViewState(on); try { window.history.replaceState(null, "", on ? "#walk=all" : `#walk=${step + 1}`); } catch { /* ignore */ } };
   const setStep = (n) => { setStepState(n); try { window.history.replaceState(null, "", `#walk=${n + 1}`); } catch { /* ignore */ } };
 
   // Keep the active tab fully in view in the scrolling tab strip (375px).
@@ -205,7 +209,7 @@ function AppInner() {
                   {config.talkTrack.filter((t) => (tab === "walk" ? [WALK_SAY[step]] : SAY[tab] || []).includes(t.id)).map((t) => <p key={t.id}><strong>{t.title}.</strong> {t.say}</p>)}
                 </aside>
               )}
-              {tab === "walk" && <GuidedWalk step={step} setStep={setStep} config={config} sel={sel} setSel={setSel} run={run} fail={fail} vertical={vertical} resetSignal={resetSignal} goTab={select} liveOn={liveOn} />}
+              {tab === "walk" && <GuidedWalk step={step} setStep={setStep} allView={allView} setAllView={setAllView} config={config} sel={sel} setSel={setSel} run={run} fail={fail} vertical={vertical} resetSignal={resetSignal} goTab={select} liveOn={liveOn} />}
               {tab === "exchange" && <ExchangePanel config={config} sel={sel} setSel={setSel} run={run} fail={fail} />}
               {tab === "wire" && <WireTab run={run} evidence={config.evidence} config={config} onRefresh={refreshRun} fail={fail} />}
               {tab === "diagram" && <DiagramTab sel={sel} vertical={vertical} resetSignal={resetSignal} run={run} />}

@@ -183,6 +183,36 @@ describe("Guided walk", () => {
   });
 });
 
+describe("See everything on one page", () => {
+  it("stacks all seven steps with a contents list of buttons that scroll (the hash stays #walk=all); Back to the walk restores the step", async () => {
+    window.location.hash = "#walk=3";
+    render(<App />);
+    await screen.findByTestId("walk-heading");
+    await userEvent.click(screen.getByTestId("all-toggle"));
+    expect(await screen.findByTestId("walk-all")).toBeInTheDocument();
+    expect(window.location.hash).toBe("#walk=all");
+    expect(screen.getByTestId("all-toggle")).toHaveTextContent("Back to the walk");
+    for (let n = 1; n <= 7; n++) expect(screen.getByTestId(`walk-all-${n}`)).toBeInTheDocument();
+    expect(within(screen.getByTestId("contents")).getAllByRole("button")).toHaveLength(7);
+    expect(screen.queryByRole("link")).toBeNull();
+    const scroll = vi.fn(); Element.prototype.scrollIntoView = scroll;
+    await userEvent.click(screen.getByTestId("contents-5"));
+    expect(scroll).toHaveBeenCalled();
+    expect(window.location.hash).toBe("#walk=all");
+    expect(document.querySelectorAll("h1")).toHaveLength(0);
+    await userEvent.click(screen.getByTestId("all-toggle"));
+    expect(await screen.findByTestId("kicker")).toHaveTextContent("Step 3 of 7");
+    expect(window.location.hash).toBe("#walk=3");
+  });
+  it("opens from the link #walk=all and back goes to step 1", async () => {
+    window.location.hash = "#walk=all";
+    render(<App />);
+    expect(await screen.findByTestId("walk-all")).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId("all-toggle"));
+    expect(await screen.findByTestId("kicker")).toHaveTextContent("Step 1 of 7");
+  });
+});
+
 describe("text size control", () => {
   it("steps 80 to 170 in tens, disables at the limits, scales the root, announces the percentage, resets", async () => {
     render(<FontSize />);

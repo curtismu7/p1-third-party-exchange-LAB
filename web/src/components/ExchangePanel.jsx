@@ -7,7 +7,7 @@ import { DecodeSwitch } from "./DecodeContext";
 import { jwksFromWire } from "../tokenDecode";
 import { visible } from "../safeText";
 
-function Hops({ hops, traceId }) {
+export function Hops({ hops, traceId }) {
   return (
     <section aria-label="Mock hops with traceparent" data-testid="hops">
       <h3>Hops (W3C traceparent) <span className="muted">trace {traceId}</span></h3>
