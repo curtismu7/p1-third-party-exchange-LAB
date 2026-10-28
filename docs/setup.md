@@ -172,3 +172,7 @@ Both tabs show the full wire (secrets redacted, tokens whole and decoded), an **
 2. Assign it to the exchanging application (step 2 above).
 3. The PingFederate token must be a JWT with `exp`. PingFederate tokens often carry `x5t` and no `kid`, so the signing key must be published in the JWKS: on the JWT access token manager turn on "Publish Keys to the PingFederate JWKS Endpoint", or PingOne answers "JWT signature verification failed". The local tab's "Check issuer metadata" reports whether the token's kid or x5t matches a published key (UNVERIFIED for your PingFederate version).
 4. PingFederate's token endpoint does not allow browser requests (CORS), so for the browser tab get the PingFederate token yourself (curl or Postman) and paste it. The local tab can fetch it for you.
+
+## Local Real-tab prefill (owner machine only)
+
+`.data/` is gitignored. `.data/real-prefill.json` prefills the browser Real tab (never the client secret). To refresh the tokens, which last about an hour: `node scripts/mint-pf-actor.mjs` (PingFederate actor token, from `.data/pf-actor.json`) and `node scripts/mint-p1-subject.mjs` (PingOne subject token, from `.data/p1-app.json`). Each config file holds `tokenUrl`, `clientId`, `clientSecret`, `scope`. The hosted build never serves the prefill.
