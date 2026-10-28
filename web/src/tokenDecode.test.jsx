@@ -175,10 +175,13 @@ describe("Real exchange (your browser): no secret or token goes anywhere but the
     await userEvent.click(screen.getByTestId("rb-actor")); await userEvent.paste(actor);
   };
   const reply = (status, body, headers = { "content-type": "application/json" }) => new Response(body, { status, headers });
+  // The tab asks THIS server once for an optional local prefill; every other fetch goes to `inner` (the PingOne send).
+  const PREFILL = "/api/real-prefill";
+  const route = (inner, prefill = reply(404, "{}")) => vi.fn((url, init) => (url === PREFILL ? Promise.resolve(prefill.clone()) : inner(url, init)));
 
   it("sends ONE fetch to the typed endpoint (cors, no credentials, no redirect), shows the redacted request and the full response, decodes the access token", async () => {
     const calls = [];
-    globalThis.fetch = vi.fn(async (url, init) => { calls.push([url, init]); return reply(200, JSON.stringify({ access_token: issued, token_type: "Bearer" })); });
+    globalThis.fetch = route(async (url, init) => { calls.push([url, init]); return reply(200, JSON.stringify({ access_token: issued, token_type: "Bearer" })); });
     const storageSet = vi.spyOn(Storage.prototype, "setItem");
     render(<DecodeProvider><RealBrowserTab resetSignal={0} /></DecodeProvider>);
     expect(screen.getByTestId("real-browser-banner")).toHaveTextContent("REAL: this sends a real request from your browser to your PingOne. Nothing goes through this server.");
@@ -207,7 +210,7 @@ describe("Real exchange (your browser): no secret or token goes anywhere but the
   });
   it("a PingOne refusal shows the status, the body and a hint; a blocked fetch explains CORS and the network; a bad endpoint never fetches", async () => {
     const f = vi.fn();
-    globalThis.fetch = f;
+    globalThis.fetch = route(f);
     f.mockResolvedValueOnce(reply(400, JSON.stringify({ error: "invalid_request", error_description: "The request could not be completed. The request was malformed or invalid.: JWT signature verification failed (Correlation ID: x)" })));
     render(<DecodeProvider><RealBrowserTab resetSignal={0} /></DecodeProvider>);
     await fill(); await userEvent.click(screen.getByTestId("rb-confirm")); await userEvent.click(screen.getByTestId("rb-send-btn"));
@@ -223,7 +226,7 @@ describe("Real exchange (your browser): no secret or token goes anywhere but the
     expect(f).toHaveBeenCalledTimes(2);
   });
   it("Reset and leaving the tab clear the secret and the tokens", async () => {
-    globalThis.fetch = vi.fn();
+    globalThis.fetch = route(vi.fn());
     const { rerender, unmount } = render(<DecodeProvider><RealBrowserTab resetSignal={0} /></DecodeProvider>);
     await fill();
     expect(screen.getByTestId("rb-secret")).toHaveValue(SECRET);
@@ -233,6 +236,25 @@ describe("Real exchange (your browser): no secret or token goes anywhere but the
     unmount();
     render(<DecodeProvider><RealBrowserTab resetSignal={0} /></DecodeProvider>);
     expect(screen.getByTestId("rb-secret")).toHaveValue("");
-    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(globalThis.fetch.mock.calls.every(([u]) => u === PREFILL)).toBe(true);
+  });
+  it("a local prefill fills the form (never the secret) and Reset re-applies it; a hosted 404 leaves it empty", async () => {
+    globalThis.fetch = route(vi.fn(), reply(200, JSON.stringify({ endpoint: `https://${host}/${ENV}/as/token`, clientId: "app9", scope: "p.read", actorType: "urn:ietf:params:oauth:token-type:jwt" })));
+    const { rerender } = render(<DecodeProvider><RealBrowserTab resetSignal={0} /></DecodeProvider>);
+    await waitFor(() => expect(screen.getByTestId("rb-client")).toHaveValue("app9"));
+    expect(screen.getByTestId("rb-scope")).toHaveValue("p.read");
+    expect(screen.getByTestId("rb-parsed")).toHaveTextContent(`Environment ${ENV}`);
+    expect(screen.getByTestId("rb-secret")).toHaveValue("");
+    await userEvent.type(screen.getByTestId("rb-secret"), SECRET);
+    rerender(<DecodeProvider><RealBrowserTab resetSignal={1} /></DecodeProvider>);
+    expect(screen.getByTestId("rb-secret")).toHaveValue("");
+    await waitFor(() => expect(screen.getByTestId("rb-client")).toHaveValue("app9"));
+  });
+  it("without a prefill (hosted 404) the form starts empty", async () => {
+    globalThis.fetch = route(vi.fn());
+    render(<DecodeProvider><RealBrowserTab resetSignal={0} /></DecodeProvider>);
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    expect(screen.getByTestId("rb-client")).toHaveValue("");
+    expect(screen.getByTestId("rb-endpoint")).toHaveValue("");
   });
 });

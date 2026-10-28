@@ -11,6 +11,9 @@ services:
     environment:
       PORT: "5200"
       P1TPX_BIND: 0.0.0.0
+    volumes:
+      # Optional local prefill for the browser Real tab (.data/real-prefill.json, gitignored, never a secret). Read-only.
+      - ./.data:/app/.data:ro
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]

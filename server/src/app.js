@@ -22,6 +22,7 @@ import { createWorkspaces, workspaceFrom } from './workspaces.js';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = process.env.WEB_DIST || path.resolve(HERE, '../../web/dist');
 const CONFIG = process.env.CUSTOMER_CONFIG || path.resolve(HERE, '../../customer.config.json');
+const PREFILL = path.resolve(HERE, '../../.data/real-prefill.json');
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
 export function createApp({ health = createHealth(), configFile = CONFIG, hosted = false, workspaces = createWorkspaces(), now = nowSeconds, env = process.env, live = {} } = {}) {
@@ -68,6 +69,17 @@ export function createApp({ health = createHealth(), configFile = CONFIG, hosted
     const body = { mode: g.allowed ? 'live' : 'mock', simulated: true, hosted };
     if (g.requested) body.live = { requested: true, enabled: g.allowed, reasons: g.reasons };
     res.json(body);
+  });
+  // Optional local-only prefill for the browser Real tab. Hosted builds answer 404. The file is gitignored (.data/) and never carries a secret.
+  api.get('/real-prefill', (_req, res) => {
+    noStore(res);
+    if (hosted) return res.status(404).json({ error: 'not_found' });
+    const KEYS = ['endpoint', 'clientId', 'authStyle', 'scope', 'audience', 'subjectToken', 'subjectType', 'actorToken', 'actorType', 'extra'];
+    let raw = {};
+    try { raw = JSON.parse(fs.readFileSync(env.P1TPX_PREFILL_FILE || PREFILL, 'utf8')); } catch { /* none: nothing to prefill */ }
+    const out = {};
+    for (const k of KEYS) if (typeof raw[k] === 'string' && raw[k].length <= 16384) out[k] = raw[k];
+    res.json(out);
   });
   // Owner-run LIVE mode. Always mounted so the answer is a clear 403 with reasons; the hosted build can never pass the gate.
   api.use('/live', createLiveRouter({ env, hosted, ...live }));
