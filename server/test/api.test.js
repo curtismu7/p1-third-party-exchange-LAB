@@ -267,3 +267,17 @@ test('clockSkew and maxFutureValidity are accepted at their limits and come back
     for (const q of ['clockSkew=61', 'clockSkew=abc', 'maxFutureValidity=-1', 'maxFutureValidity=99999999999']) assert.equal((await fetch(`${url}/api/diagram?vendorId=okta&${q}`)).status, 400, q);
   });
 });
+
+test('GET /api/real-prefill returns only whitelisted non-secret fields locally and 404s when hosted', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'p1tpx-prefill-'));
+  const file = path.join(dir, 'p.json');
+  fs.writeFileSync(file, JSON.stringify({ scope: 'openid', clientId: 'x', clientSecret: 'must-not-return', other: 'nope', extra: 5 }));
+  const env = { P1TPX_PREFILL_FILE: file };
+  await withServer(async (url) => {
+    const j = await (await fetch(`${url}/api/real-prefill`)).json();
+    assert.deepEqual(j, { clientId: 'x', scope: 'openid' });
+  }, { env });
+  await withServer(async (url) => { assert.equal((await fetch(`${url}/api/real-prefill`)).status, 404); }, { hosted: true, env });
+  await withServer(async (url) => { assert.deepEqual(await (await fetch(`${url}/api/real-prefill`)).json(), {}); }, { env: { P1TPX_PREFILL_FILE: path.join(dir, 'missing.json') } });
+  fs.rmSync(dir, { recursive: true, force: true });
+});

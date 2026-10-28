@@ -35,6 +35,12 @@ export default function RealBrowserTab({ resetSignal }) {
   // Reset clears the secret and everything else; so does leaving the tab (unmount).
   useEffect(() => { if (seen.current !== resetSignal) { seen.current = resetSignal; setF(EMPTY); setSent(null); setConfirmed(false); setReveal(false); setIncludeSecret(false); } }, [resetSignal]);
   useEffect(() => () => { setF(EMPTY); }, []);
+  // Local builds may offer a prefill (no secret ever); hosted answers 404 and the form stays empty.
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/real-prefill", { credentials: "omit" }).then((r) => (r.ok ? r.json() : null)).then((p) => { if (alive && p && typeof p === "object") setF((s) => { const next = { ...s }; for (const k of Object.keys(p)) if (k in EMPTY && k !== "clientSecret" && s[k] === EMPTY[k]) next[k] = p[k]; return next; }); }).catch(() => {});
+    return () => { alive = false; };
+  }, [resetSignal]);
 
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
   const ep = parseTokenEndpoint(f.endpoint);
