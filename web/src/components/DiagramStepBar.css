@@ -1,9 +1,7 @@
 @keyframes dstep-flow {
   to { stroke-dashoffset: -20; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .react-flow__edge path { animation: none !important; }
-}
+/* Reduced motion is handled once, in the shared stylesheet. */
 
 /* DiagramStepBar.css — the card and caption under the shared DiagramControls toolbar. */
 
@@ -39,13 +37,7 @@
 
 .dstep-reset {
   padding: 0.25rem 0.6rem;
-  border: 1px solid var(--th-border);
+  min-height: 0;
   border-radius: var(--radius-md);
-  background: var(--th-bg-card);
-  color: var(--th-text);
   font-size: var(--font-size-2xs);
-  font-weight: 600;
-  cursor: pointer;
 }
-.dstep-reset:disabled { opacity: 0.5; cursor: default; }
-.dstep-reset:focus-visible { outline: 2px solid var(--th-status-info); outline-offset: 2px; }

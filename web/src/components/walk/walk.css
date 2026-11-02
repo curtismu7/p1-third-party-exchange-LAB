@@ -5,12 +5,11 @@
 .walk .rail button:hover { background: none; }
 .walk .rail i { display: block; height: 0.35rem; border-radius: 9px; background: var(--th-border); margin-bottom: 0.4rem; transition: background 0.3s; }
 .walk .rail span { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em; display: block; overflow-wrap: anywhere; }
-.walk .rail .done i { background: var(--th-accent-2); }
+.walk .rail .done i { background: var(--accent-deep); }
 .walk .rail .on i { background: var(--th-accent); }
 .walk .rail .on { color: var(--th-text); }
-.walk button:focus-visible, .walk input:focus-visible, .walk select:focus-visible, .walk h1:focus-visible { outline: 3px solid var(--th-status-info); outline-offset: 3px; }
 .walk h1 { outline: none; font-size: clamp(1.9rem, 4.2vw, 3rem); line-height: 1.12; margin: 0.35rem 0 1rem; letter-spacing: -0.03em; font-weight: 800; max-width: 22ch; overflow-wrap: anywhere; }
-.walk .kick { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--th-accent); }
+.walk .kick { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--danger-text); }
 .walk .lede { font-size: 1.2rem; max-width: 44rem; color: var(--th-text); }
 .walk .walk-h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
 .walk .step { animation: walkin 0.45s ease both; }
@@ -23,36 +22,33 @@
 .walk .card--small { padding: 1rem; }
 .walk .card h3 { margin: 0.1rem 0 0.6rem; font-size: 1rem; }
 .walk .card--small p { margin: 0; font-size: 0.9rem; color: var(--th-text-muted); }
-.walk .num { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem; border-radius: 50%; background: linear-gradient(135deg, var(--th-accent), var(--th-accent-2)); color: #fff; font-weight: 800; font-size: 0.85rem; }
+.walk .num { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem; border-radius: 50%; background: var(--accent-gradient); color: var(--on-accent); font-weight: 800; font-size: 0.85rem; }
 .walk .chips { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.25rem; }
-.walk .chip { font: inherit; font-weight: 600; border: 1.5px solid var(--th-border); background: var(--th-bg-card); color: var(--th-text); border-radius: 0.8rem; padding: 0.65rem 1rem; cursor: pointer; font-size: 0.95rem; }
-.walk .chip[aria-checked="true"] { border-color: var(--th-accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--th-accent) 18%, transparent); font-weight: 700; }
+.walk .chip { border-width: 1.5px; border-radius: 0.8rem; padding: 0.65rem 1rem; font-size: 0.95rem; }
+.walk .chip[aria-checked="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--th-accent) 18%, transparent); font-weight: 700; }
 .walk .toggle { display: flex; gap: 0.8rem; align-items: flex-start; padding: 0.9rem 0; border-bottom: 1px solid var(--th-border); font-weight: 400; margin: 0; }
 .walk .toggle input { width: 1.4rem; height: 1.4rem; margin-top: 0.15rem; accent-color: var(--th-accent); flex: none; }
 .walk .toggle small { display: block; color: var(--th-text-muted); font-size: 0.88rem; }
-.walk .card input[type="number"], .walk .card input[type="text"] { width: 100%; max-width: 100%; font: inherit; font-size: 0.95rem; color: var(--th-text); background: var(--th-bg-card); border: 1px solid var(--th-border-strong); border-radius: var(--radius-md); padding: 0.4rem 0.6rem; margin: 0.25rem 0 0.6rem; }
+.walk .card input[type="number"], .walk .card input[type="text"] { width: 100%; font-size: 0.95rem; margin: 0.25rem 0 0.6rem; }
 .walk .why { border-left: 4px solid var(--th-accent); padding: 0.2rem 0 0.2rem 1rem; margin-top: 1.25rem; color: var(--th-text-muted); max-width: 42rem; }
-.walk details { margin-top: 1rem; } .walk summary { cursor: pointer; font-weight: 700; color: var(--th-accent); }
+.walk details { margin-top: 1rem; } .walk summary { cursor: pointer; font-weight: 700; color: var(--danger-text); }
 .walk .verdict { margin-top: 1rem; font-size: 1.15rem; }
 .walk .buttons { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-.walk .btn, .walkbar .btn { font: inherit; font-weight: 700; border-radius: 999px; border: 1.5px solid var(--th-border-strong); background: var(--th-bg-card); color: var(--th-text); padding: 0.8rem 1.5rem; cursor: pointer; font-size: 1rem; }
-.walk .btn.go, .walkbar .btn.go { background: linear-gradient(135deg, var(--th-accent), var(--th-accent-2)); border: 0; color: #fff; box-shadow: 0 6px 18px color-mix(in oklab, var(--th-accent) 35%, transparent); }
-.walk .btn:disabled, .walkbar .btn:disabled { opacity: 0.4; cursor: default; }
+.walk .btn, .walkbar .btn { font-weight: 700; border-radius: 999px; border-width: 1.5px; padding: 0.8rem 1.5rem; font-size: 1rem; }
+.walk .btn.go, .walkbar .btn.go { background: var(--accent-gradient); border-color: var(--primary-edge); color: var(--on-accent); box-shadow: 0 6px 18px color-mix(in oklab, var(--th-accent) 35%, transparent); }
 .walkbar { position: fixed; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, var(--th-bg-page) 70%, transparent); padding: 1rem 1rem 1.1rem; z-index: 20; pointer-events: none; }
 .walkbar .in { max-width: 62rem; margin: 0 auto; display: flex; gap: 0.75rem; align-items: center; pointer-events: auto; }
 .walkbar .where { flex: 1; color: var(--th-text-muted); font-size: 0.85rem; text-align: center; min-width: 0; overflow-wrap: anywhere; }
-.walkbar .btn:focus-visible { outline: 3px solid var(--th-status-info); outline-offset: 3px; }
 @media (max-width: 480px) { .walkbar .where { display: none; } .walkbar .in { justify-content: space-between; } .walkbar .btn { padding: 0.7rem 1.1rem; } .walk .rail span { font-size: 0.7rem; } }
 /* the diagram and wire blocks sit inside cards */
 .walk .pat-canvas { min-height: 26rem; }
 .fontctl { display: inline-flex; align-items: center; gap: 0.25rem; border: 1px solid var(--th-border-strong); border-radius: 999px; padding: 0.15rem; background: var(--th-bg-card); }
 .fontctl button { min-width: 2.4rem; height: 2.4rem; padding: 0 0.6rem; border: 0; border-radius: 999px; background: transparent; font-weight: 700; }
 .fontctl button:hover:not(:disabled) { background: var(--th-bg-inset); }
-.fontctl button:disabled { opacity: 0.4; cursor: default; }
 .fontctl output { font-size: 0.8rem; font-weight: 700; min-width: 3rem; text-align: center; color: var(--th-text-muted); }
 .walk-toolbar { display: flex; justify-content: flex-end; margin: 0 0 0.75rem; }
-.walk .chip { font: inherit; font-weight: 600; border: 1.5px solid var(--th-border); background: var(--th-bg-card); color: var(--th-text); border-radius: 0.8rem; padding: 0.5rem 0.9rem; cursor: pointer; font-size: 0.9rem; }
-.walk .chip[aria-pressed="true"] { border-color: var(--th-accent); font-weight: 700; }
+.walk .chip { border-width: 1.5px; border-radius: 0.8rem; padding: 0.5rem 0.9rem; font-size: 0.9rem; }
+.walk .chip[aria-pressed="true"] { font-weight: 700; }
 .walk .contents { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; }
 .walk--all .step--all { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--th-border); scroll-margin-top: 1rem; }
 .walk--all .walk-title { font-size: clamp(1.5rem, 3.2vw, 2.2rem); margin: 0.25rem 0 0.75rem; font-weight: 800; letter-spacing: -0.02em; }
