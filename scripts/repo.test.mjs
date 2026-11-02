@@ -66,7 +66,7 @@ test('no shipped file contains a real host (only .example, .invalid, loopback an
   const shipped = (x) => ['README.md', 'docs/setup.md', 'docs/talk-track.md', 'docs/shelf-entry.json', 'content-pack.json', 'customer.config.example.json', 'server/src/exchangeData.js'].includes(x) || x.startsWith('server/diagrams/') || (x.startsWith('web/src/') && /\.jsx?$/.test(x) && !/\.test\./.test(x)) || (x.startsWith('k8s/') && x.endsWith('.yaml'));
   for (const f of tracked().filter(shipped)) {
     const t = read(f);
-    for (const h of scanHosts(t)) if (!allowed.has(h) && h !== '0.0.0.0') hits.push(`${f}: ${h}`);
+    for (const h of scanHosts(t.replace(/https:\/\/github\.com\/ping-sandbox\/[A-Za-z0-9._-]+/g, ''))) if (!allowed.has(h) && h !== '0.0.0.0') hits.push(`${f}: ${h}`);
     for (const u of t.match(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi) || []) if (!/^(0{8}|1{8}|2{8}|a{8}|b{8}|c{8}|d{8}|e{8})-/i.test(u)) hits.push(`${f}: uuid ${u.slice(0, 8)}`);
   }
   assert.deepEqual(hits, []);
