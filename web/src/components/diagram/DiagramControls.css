@@ -19,20 +19,15 @@
   margin-bottom: 0.75rem;
 }
 
-/* Zoom block */
+/* Zoom block: plain shared buttons, only the size is set here. */
 .dc-zoom-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
   font-size: 1.1rem;
   line-height: 1;
   padding: 0.2rem 0.45rem;
+  min-height: 0;
   border-radius: var(--radius-sm);
-  color: #263746;
-  transition: background 0.15s;
 }
-.dc-zoom-btn:hover:not(:disabled) { background: #e0e2e4; }
-.dc-zoom-btn:disabled { color: #909ea4; cursor: not-allowed; }
+.dc-zoom-btn:hover:not(:disabled) { background: var(--surface-2); }
 
 .dc-zoom-label {
   font-size: 0.8rem;
@@ -44,14 +39,13 @@
 
 .dc-zoom-reset {
   font-size: 0.95rem;
-  color: #5c646b;
 }
 
 /* Divider between zoom and step blocks */
 .dc-divider {
   width: 1px;
   height: 1.2rem;
-  background: #e0e2e4;
+  background: var(--border);
   margin: 0 0.2rem;
 }
 
@@ -59,54 +53,45 @@
 .dc-step-label {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #12538d;
-  background: #fcfcfc;
-  border: 1px solid #bfdbfe;
+  color: var(--status-info);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 5px;
   padding: 0.25rem 0.6rem;
 }
 .dc-step-label--paused {
-  color: #92400e;
-  background: #fffbeb;
-  border-color: #fde68a;
+  color: var(--status-warn);
+  background: var(--surface-2);
+  border-color: var(--status-warn);
 }
 
 .dc-ctrl-btn {
   padding: 0.25rem 0.7rem;
-  border: none;
+  min-height: 0;
   border-radius: var(--btn-radius);
   font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
   transition: background 0.15s;
-  font-family: inherit;
 }
 .dc-ctrl-btn:disabled {
-  background: #eff0f1 !important;
-  color: #051727 !important;
+  background: var(--surface-2);
+  color: var(--text);
   cursor: not-allowed;
 }
 
-.dc-ctrl-btn--simulate { background: #d20e0f; color: #fff; }
-.dc-ctrl-btn--simulate:hover:not(:disabled) { background: #003366; }
+.dc-ctrl-btn--simulate,
+.dc-ctrl-btn--next { background: var(--accent); color: var(--on-accent); border-color: var(--primary-edge); }
+.dc-ctrl-btn--simulate:hover:not(:disabled),
+.dc-ctrl-btn--next:hover:not(:disabled) { background: var(--accent-deep); }
 
-.dc-ctrl-btn--pause  { background: #92400e; color: #fff; }
-.dc-ctrl-btn--pause:hover:not(:disabled)  { background: #d97706; }
+.dc-ctrl-btn--pause  { border-color: var(--status-warn); }
+.dc-ctrl-btn--resume { border-color: var(--status-ok); }
+.dc-ctrl-btn--stop   { background: var(--surface-2); }
 
-.dc-ctrl-btn--resume { background: #166534; color: #fff; }
-.dc-ctrl-btn--resume:hover:not(:disabled) { background: #16a34a; }
-
-.dc-ctrl-btn--next   { background: #d20e0f; color: #fff; }
-.dc-ctrl-btn--next:hover:not(:disabled)   { background: #003366; }
-
-.dc-ctrl-btn--stop   { background: #e0e2e4; color: #263746; }
-.dc-ctrl-btn--stop:hover:not(:disabled)   { background: #cdd1d4; }
-
-.dc-ctrl-btn--prev   { background: #fff; color: #263746; border: 1px solid #e0e2e4; }
-.dc-ctrl-btn--prev:hover:not(:disabled)   { background: #eff0f1; }
-
-.dc-ctrl-btn--reset  { background: #fff; color: #263746; border: 1px solid #cdd1d4; }
-.dc-ctrl-btn--reset:hover:not(:disabled)  { background: #eff0f1; }
+.dc-ctrl-btn--prev:hover:not(:disabled),
+.dc-ctrl-btn--reset:hover:not(:disabled),
+.dc-ctrl-btn--pause:hover:not(:disabled),
+.dc-ctrl-btn--resume:hover:not(:disabled),
+.dc-ctrl-btn--stop:hover:not(:disabled) { background: var(--surface-2); }
 
 /* .dc-steptime* rules live in StepTimeSelector.css (owned by that component). */
 
@@ -160,27 +145,22 @@
   align-items: center;
   gap: 6px;
   padding: 7px 14px;
-  border: 2px solid #e0e2e4;
+  min-height: 0;
+  border-width: 2px;
   border-radius: var(--btn-radius);
-  background: #ffffff;
-  color: #263746;
   font-size: var(--font-size-sm);
-  font-weight: 600;
-  cursor: pointer;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
-  font-family: inherit;
   line-height: 1;
 }
 
 .pfb-btn:not([data-active="true"]):hover {
-  border-color: #909ea4;
-  color: #263746;
+  background: var(--surface-2);
 }
 
 .pfb-btn[data-active="true"] {
-  background: #263746;
-  border-color: var(--th-text);
-  color: #ffffff;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
 }
 
 .pfb-swatch {
@@ -189,24 +169,4 @@
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-}
-
-/* SequenceDiagramPage paints a literal-light page (inline #fff / #f7f8f8), so keep its ink light-mode in dark too. */
-:root[data-theme="dark"] .seq-paper {
-  color: #020617;
-  --th-bg-card: #ffffff;
-  --th-bg-inset: #eff0f1;
-  --th-border: #dbe2ea;
-  --th-text: #020617;
-  --th-text-muted: #020617;
-  --th-text-faint: #020617;
-  --bs-heading-color: #020617;
-  --bs-link-color-rgb: 3, 105, 161;
-}
-/* The export bar's link reads --th-status-info-text: unpinned it stays dark-mode
-   light blue on the pinned-light inset above (1.65:1). Pin on the bar, not on
-   .seq-paper — the sequence diagram's participant boxes share the token and
-   need the dark-theme pair (see SequenceFlowDiagram.css .sfx-part). */
-:root[data-theme="dark"] .seq-paper .deb-bar {
-  --th-status-info-text: #051727;
 }

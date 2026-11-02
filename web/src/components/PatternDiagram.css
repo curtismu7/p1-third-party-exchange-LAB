@@ -1,8 +1,9 @@
 .pat-canvas { height: min(75rem, 90vh); min-height: 37.5rem; border: 1px solid var(--th-border); border-radius: var(--radius-lg); background: var(--th-bg-card); }
-.pat-node { padding: 14px 16px; min-width: 6.9rem; max-width: 12rem; text-align: center; font-size: var(--font-size-sm); font-weight: 600; color: var(--th-text); background: var(--th-status-info-bg); border: 2px solid var(--th-status-info); border-radius: var(--radius-md); }
+/* Diagram boxes are dark in both themes (--box-*), with a visible border so they never melt into the canvas. */
+.pat-node { padding: 14px 16px; min-width: 6.9rem; max-width: 12rem; text-align: center; font-size: var(--font-size-sm); font-weight: 600; color: var(--on-box); background: var(--box-dark); border: 2px solid var(--th-status-info); border-radius: var(--radius-md); }
 .pat-node--gateway { border-width: 3px; border-color: var(--th-accent); }
-.pat-node--resource { border-color: var(--th-border-strong); background: var(--th-bg-inset); }
-.pat-node--idp { border-color: var(--th-status-warning); background: var(--th-bg-inset); }
+.pat-node--resource { border-color: var(--th-border-strong); background: var(--box-grey); }
+.pat-node--idp { border-color: var(--th-status-warning); background: var(--box-blue); }
 .pat-node--on { box-shadow: 0 0 0 3px var(--th-accent); }
 .pat-handle { opacity: 0; pointer-events: none; }
 .pat-edge path { stroke: var(--th-text-muted); stroke-width: 1.6; }
