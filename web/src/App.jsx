@@ -13,7 +13,8 @@ import RealLocalTab from "./components/RealLocalTab";
 import GuidedWalk from "./components/walk/GuidedWalk";
 import { STEPS } from "./components/walk/steps";
 import FontSize from "./components/FontSize";
-import { exchange, getJson, resetWorkspace } from "./api";
+import ModeToggle from "./components/ModeToggle";
+import { exchange, getJson, resetWorkspace, postMode } from "./api";
 
 export const TABS = [
   { id: "exchange", label: "Exchange lab" },
@@ -88,6 +89,11 @@ function AppInner() {
     return () => { live = false; clearTimeout(t); };
   }, [sel, resetSignal]);
   useEffect(() => { getJson("/api/info").then(setInfo, () => setInfo(null)); }, []);
+  // Rule 19: the toggle asks the server; a refusal (409/403) keeps the current mode on screen.
+  const selectMode = async (source) => {
+    const res = await postMode(source);
+    if (res.ok) setInfo(res.body);
+  };
   useEffect(() => {
     getJson(`/api/vendors?vertical=${encodeURIComponent(vertical)}`).then((j) => {
       setConfig(j); setError(null);
@@ -172,7 +178,7 @@ function AppInner() {
             {!presenter && config && tab !== "walk" && <p className="intro">{config.intro}</p>}
           </div>
           <div className="head__tools">
-            <span className="chip" data-testid="mode">Mode: {info ? info.mode : "mock"}{hosted === true ? " (hosted)" : hosted === false ? " (local)" : ""}</span>
+            <ModeToggle info={info} onSelect={selectMode} />
             {!presenter && (
               <label className="inline">Vertical{" "}
                 <select value={vertical} onChange={(e) => setVertical(e.target.value)}>
