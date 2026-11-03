@@ -14,5 +14,8 @@
       "where": "both",
       "mockUrl": "https://third-party-exchange.mock.example"
     }
+  ],
+  "pingProducts": [
+    "pingone"
   ]
 }
