@@ -35,6 +35,30 @@ export function createApp({ health = createHealth(), configFile = CONFIG, hosted
   const api = express.Router();
   api.use(express.json({ limit: '8kb' }));
   api.use('/health', health.router);
+  // Rule 19: the Mock/Real toggle. Real is the owner-run live machinery; it can be switched to at runtime ONLY
+  // when the launch-time gate passed (MODE=live, P1TPX_ALLOW_LIVE=1, loopback-only, not hosted) — the toggle
+  // never widens the gate, it only selects which already-configured side answers. The hosted build is Mock only.
+  let modeSource = liveGate(env, { hosted }).allowed ? 'real' : 'mock';
+  const modeInfo = () => {
+    const g = liveGate(env, { hosted });
+    const body = { mode: g.allowed ? 'live' : 'mock', simulated: true, hosted, source: modeSource, realAvailable: g.allowed };
+    if (g.requested) body.live = { requested: true, enabled: g.allowed, reasons: g.reasons };
+    return body;
+  };
+  api.get('/info', (_req, res) => {
+    noStore(res);
+    res.json(modeInfo());
+  });
+  api.post('/mode', (req, res) => {
+    noStore(res);
+    const b = req.body;
+    if (b === null || typeof b !== 'object' || Array.isArray(b) || Object.keys(b).length !== 1 || !['mock', 'real'].includes(b.source)) return res.status(400).json({ error: 'bad_request', message: 'body must be exactly {source: "mock" or "real"}' });
+    if (hosted) return res.status(403).json({ error: 'mock_only', message: 'The hosted build is Mock only: live mode never runs there.' });
+    const g = liveGate(env, { hosted });
+    if (b.source === 'real' && !g.allowed) return res.status(409).json({ error: 'conflict', message: `Real is gated off: ${g.reasons.join('; ')}.` });
+    modeSource = b.source;
+    return res.json(modeInfo());
+  });
   const castFor = (req) => loadCast(configFile, verticalFrom(req.query.vertical));
   const noStore = (res) => res.set('Cache-Control', 'no-store');
   // customer.config.json is read on every request so editing it shows up on reload.
@@ -61,14 +85,6 @@ export function createApp({ health = createHealth(), configFile = CONFIG, hosted
       if (e instanceof ExchangeInputError) return res.status(400).json({ error: e.code, detail: e.message });
       throw e;
     }
-  });
-  // What this build is, for the banner and for verifying a deploy by content (not by a 200).
-  api.get('/info', (_req, res) => {
-    noStore(res);
-    const g = liveGate(env, { hosted });
-    const body = { mode: g.allowed ? 'live' : 'mock', simulated: true, hosted };
-    if (g.requested) body.live = { requested: true, enabled: g.allowed, reasons: g.reasons };
-    res.json(body);
   });
   // Optional local-only prefill for the browser Real tab. Hosted builds answer 404. The file is gitignored (.data/) and never carries a secret.
   api.get('/real-prefill', (_req, res) => {

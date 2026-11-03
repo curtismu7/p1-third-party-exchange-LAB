@@ -23,3 +23,11 @@ export async function liveCall(url, payload) {
   try { body = await r.json(); } catch { /* not JSON */ }
   return { ok: r.ok, status: r.status, body };
 }
+
+// Rule 19: the Mock/Real toggle. Returns { ok, status, body }: a 409/403 is data, not an exception.
+export async function postMode(source) {
+  const r = await workspaceFetch("/api/mode", { method: "POST", body: JSON.stringify({ source }) });
+  let body = {};
+  try { body = await r.json(); } catch { /* not JSON */ }
+  return { ok: r.ok, status: r.status, body };
+}
