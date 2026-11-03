@@ -62,7 +62,8 @@ function mockFetch() {
     calls.push({ url, opts });
     const json = (body, status = 200) => ({ ok: status < 400, status, json: async () => body });
     if (url.startsWith("/api/vendors")) return override.vendors ? override.vendors() : json(CONFIG);
-    if (url === "/api/info") return override.info ? override.info() : json({ mode: "mock", simulated: true, hosted: false });
+    if (url === "/api/info") return override.info ? override.info() : json({ mode: "mock", simulated: true, hosted: false, source: "mock", realAvailable: false });
+    if (url === "/api/mode") return override.mode ? override.mode() : json({ mode: "mock", simulated: true, hosted: false, source: "mock", realAvailable: false });
     if (url === "/api/compare") return json({ columns: ["PingOne", "Okta"], rows: [["Issuer", "iss", "iss"], ["Audience", "aud", null]], note: "From the sheet.", evidence: EVIDENCE.sample });
     if (url === "/api/setup") return json(SETUP);
     if (url.startsWith("/api/diagram")) return json(DOC);
@@ -84,7 +85,7 @@ describe("shell", () => {
   it("shows the banner, the mode, and sends X-Workspace on API calls", async () => {
     await ready();
     expect(screen.getByTestId("banner")).toHaveTextContent(/^SIMULATED/);
-    expect(screen.getByTestId("mode")).toHaveTextContent("Mode: mock (local)");
+    expect(screen.getByTestId("mode-mock")).toHaveAttribute("aria-pressed", "true");
     const ex = calls.find((c) => c.url === "/api/exchange");
     expect(ex.opts.headers["x-workspace"]).toMatch(/^[a-z0-9-]{1,40}$/);
   });
@@ -277,7 +278,7 @@ describe("talk track and presenter mode", () => {
     override.vendors = async () => ({ ok: true, status: 200, json: async () => ({ ...CONFIG, banner: "HOSTED SIMULATION: x", hosted: true }) });
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("banner")).toHaveTextContent(/^HOSTED SIMULATION/));
-    expect(screen.getByTestId("mode")).toHaveTextContent("(hosted)");
+    expect(screen.getByTestId("mode-real")).toBeDisabled();
   });
 });
 
