@@ -13,6 +13,35 @@ Repo: https://github.com/curtismu7/p1-third-party-exchange-LAB
 
 Mock only. Every host ends in `.example`, ids are obviously fake, and the app makes no outbound network request (a netguard blocks them and tests prove it). It needs no tenant, no credentials and holds no client secret. Tokens are MOCK-ISSUED and shown raw and whole for education: real RS256 JWTs signed by RSA keys that exist only in the server process (the actor token verifies against the JWKS in the trusted-issuer call; a bad-signature token really fails), so they open nothing anywhere.
 
+## Run from a clone
+
+Prerequisites: Node 26. Docker (OrbStack) only for the Docker form.
+
+```
+git clone https://github.com/curtismu7/p1-third-party-exchange-LAB.git
+cd p1-third-party-exchange-LAB
+npm ci
+npm run build
+npm run doctor
+npm start
+```
+
+## Ports, and what to do if the port is taken
+
+```
+Ports: p1-third-party-exchange-LAB listens on 5200 (set with PORT, default 5200).
+Port range for this app: 5200-5249.
+
+If the port is taken:
+1. Find what is using it:
+   lsof -iTCP:5200 -sTCP:LISTEN -n -P
+2. If it is an old copy of this app, stop that process: kill <PID>.
+3. If it is something else, stop it, or start this app on another port:
+   PORT=<other port> npm start
+```
+
+Other variable: `HOST_PORT=5200` (Docker host port). Keep both inside 5200-5249.
+
 ## Run
 
 ```
