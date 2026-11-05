@@ -15,6 +15,7 @@ import { STEPS } from "./components/walk/steps";
 import FontSize from "./components/FontSize";
 import ModeToggle from "./components/ModeToggle";
 import { exchange, getJson, resetWorkspace, postMode } from "./api";
+import ShelfLink from "./components/ShelfLink.jsx";
 
 export const TABS = [
   { id: "exchange", label: "Exchange lab" },
@@ -178,6 +179,7 @@ function AppInner() {
             {!presenter && config && tab !== "walk" && <p className="intro">{config.intro}</p>}
           </div>
           <div className="head__tools">
+            <ShelfLink />
             <ModeToggle info={info} onSelect={selectMode} />
             {!presenter && (
               <label className="inline">Vertical{" "}
