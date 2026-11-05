@@ -140,6 +140,7 @@ export function createApp({ health = createHealth(), configFile = CONFIG, hosted
   // Reset clears this workspace's exchanges only.
   api.post('/reset', withWorkspace((ws, _req, res) => { workspaces.reset(ws); res.json({ reset: 'ok', workspace: ws }); }));
   api.use((_req, res) => res.status(404).json({ error: 'not_found' }));
+  app.get('/api/shelf', (_req, res) => { res.set('Cache-Control', 'no-store'); res.json(shelfInfo()); }); // the header "Shelf" button
   app.use('/api', api);
   // Errors become short JSON. Express's default handler would send an HTML stack trace with absolute file paths.
   // eslint-disable-next-line no-unused-vars
@@ -151,7 +152,6 @@ export function createApp({ health = createHealth(), configFile = CONFIG, hosted
   });
 
   if (fs.existsSync(path.join(WEB_DIST, 'index.html'))) {
-app.get('/api/shelf', (_req, res) => { res.set('Cache-Control', 'no-store'); res.json(shelfInfo()); }); // the header "Shelf" button
     app.use(express.static(WEB_DIST));
     app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(WEB_DIST, 'index.html')));
   }
