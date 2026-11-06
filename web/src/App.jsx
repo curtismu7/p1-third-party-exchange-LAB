@@ -43,6 +43,12 @@ const TAIL = "Nothing here calls PingOne, a third-party issuer or any tenant.";
 export const BANNER_UNKNOWN = `SIMULATED / HOSTED SIMULATION: a mock of PingOne token exchange with a third-party actor token. ${TAIL}`;
 const BANNER_LOCAL = `SIMULATED: a mock of PingOne token exchange with a third-party actor token. ${TAIL}`;
 const BANNER_HOSTED = `HOSTED SIMULATION: a mock of PingOne token exchange with a third-party actor token. ${TAIL}`;
+const THEME_KEY = "p1tpe.theme";
+const THEMES = [["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]];
+function initialTheme() {
+  try { const t = localStorage.getItem(THEME_KEY); if (t === "light" || t === "dark") return t; } catch { /* storage blocked */ }
+  return "auto";
+}
 const FALLBACK = { vendorId: "pf-cc", tokenState: "valid", assigned: true, settings: { expRequired: true, iatRequired: false, nbfRequired: false, audiences: "", clockSkew: 0, maxFutureValidity: 0 } };
 const initialSel = (defaults, vendorId) => ({ vendorId: vendorId || FALLBACK.vendorId, tokenState: "valid", assigned: defaults ? defaults.assigned : true, settings: defaults ? { expRequired: defaults.expRequired, iatRequired: defaults.iatRequired, nbfRequired: defaults.nbfRequired, audiences: defaults.audiences, clockSkew: defaults.clockSkew, maxFutureValidity: defaults.maxFutureValidity } : { ...FALLBACK.settings } });
 
@@ -73,9 +79,17 @@ function AppInner() {
   const [resetMsg, setResetMsg] = useState("");
   const [run, setRun] = useState(null);
   const [fail, setFail] = useState(null);
+  const [theme, setTheme] = useState(initialTheme);
   const tabsRef = useRef(null);
   const selRef = useRef(null);
   const wantVendor = useRef(hashParts().vendor);
+
+  useEffect(() => { if (theme === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme; }, [theme]);
+
+  const pickTheme = (next) => {
+    try { if (next === "auto") localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, next); } catch { /* not remembered */ }
+    setTheme(next);
+  };
 
   // One mock exchange per change of the controls, debounced so typing in the audience box does not flood the server. The result is
   // shared by the Exchange, Wire and Diagram tabs.
@@ -189,6 +203,11 @@ function AppInner() {
               </label>
             )}
             <FontSize />
+            <label className="shell-theme">Theme
+              <select value={theme} onChange={(e) => pickTheme(e.target.value)}>
+                {THEMES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+              </select>
+            </label>
             <button type="button" onClick={reset} data-testid="reset">Reset</button>
             <button type="button" aria-pressed={presenter} onClick={() => setPresenter((v) => !v)} data-testid="presenter">{presenter ? "Exit presenter (Esc)" : "Presenter (P)"}</button>
           </div>

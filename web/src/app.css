@@ -121,3 +121,6 @@ label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 .mode-toggle button { border: 0; border-radius: 0; padding: 3px 12px; background: var(--surface-2); color: var(--text); font-size: 0.85rem; cursor: default; }
 .mode-toggle button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 700; }
 .mode-toggle button:disabled { opacity: 0.6; }
+
+.shell-theme { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text); }
+.shell-theme select { min-height: 32px; padding: 4px 8px; }
