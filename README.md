@@ -2,6 +2,7 @@
 
 **Tier: Demo.** PingOne OAuth token exchange (RFC 8693) that accepts a **third-party signed JWT** as the actor token, shown in MOCK only. Pick an issuer (PingFederate client credentials or ID token, another PingOne environment, Okta, Auth0, RFC 9068, Microsoft v1.0 or v2.0) and see what an admin configures and what PingOne does:
 
+Tier: Demo.
 Repo: https://github.com/curtismu7/p1-third-party-exchange-LAB
 
 1. A **trusted issuer**: issuer, JWKS URL or JWKS, optional audiences, `expRequired` / `iatRequired` / `nbfRequired`, clock skew (0-60 s) and maximum future validity.
