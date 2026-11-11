@@ -107,6 +107,7 @@ export default function PatternDiagram({ pattern, resetSignal = 0 }) {
       <h2 className="pat__title">{pattern.title}</h2>
       <p className="intro">{pattern.intro}</p>
       <DiagramStepBar stepper={stepper} caption={step ? (step.title || step.label) : ""} testId="pattern-step-bar" />
+      {/* ui-pattern: allow P9 diagram reset is a control, not the page primary */}
       <button type="button" className="pat-reset" onClick={reset} data-testid="pattern-reset">Reset positions and walkthrough</button>
       {step && (
         <article className="track__now" data-testid="pattern-now">

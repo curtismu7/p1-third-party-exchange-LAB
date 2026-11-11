@@ -27,6 +27,7 @@ export default function DiagramStepBar({ stepper, caption, testId = "diagram-ste
         stepMs={stepper.stepMs}
         onSetStepMs={stepper.setStepMs}
       />
+      {/* ui-pattern: allow P9 diagram reset is a control, not the page primary */}
       <button type="button" className="dstep-reset" onClick={() => {
           stepper.stop();
           window.dispatchEvent(new Event(REFIT_EVENT));

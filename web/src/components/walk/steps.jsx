@@ -206,7 +206,7 @@ export function StepKnow({ headRef, config, goTab, liveOn }) {
           <button type="button" className="btn" onClick={() => goTab("exchange")} data-testid="open-lab">Open the Exchange lab</button></p></div>
       <div className="card card--wide"><h3>Try it with your own PingOne</h3>
         <p>The next tabs make a REAL request. The first sends it from your own browser to your own PingOne; nothing goes through this server.</p>
-        <p className="buttons"><button type="button" className="btn go" onClick={() => goTab("realbrowser")} data-testid="try-browser">Real exchange (your browser)</button>
+        <p className="buttons"><button type="button" className="btn" onClick={() => goTab("realbrowser")} data-testid="try-browser">Real exchange (your browser)</button>
           {liveOn && <button type="button" className="btn" onClick={() => goTab("reallocal")} data-testid="try-local">Real exchange (local)</button>}</p>
       </div>
     </>

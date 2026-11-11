@@ -9,6 +9,7 @@ function Card({ where, token, jwks }) {
   useEffect(() => { let live = true; if (d.ok) verifyAgainstJwks(token, jwks).then((r) => { if (live) setSig(r); }); return () => { live = false; }; }, [token, jwks, d.ok]);
   if (!d.ok) return (
     <div className="dtoken dtoken--bad" data-testid="decoded-token"><p><strong>{where}</strong> <span className="bad">not a valid JWT</span></p>
+      {/* ui-pattern: allow P9 copy affordance on read-only pages; never the page primary */}
       <p className="muted">Raw <CopyButton text={token} label="Copy raw" /></p><pre className="json json--wrap json--raw">{visible(token)}</pre></div>
   );
   const sigClass = sig && (sig.state === "verified" ? "ok" : sig.state === "failed" ? "bad" : "muted");

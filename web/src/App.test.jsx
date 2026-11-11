@@ -340,11 +340,14 @@ describe("links from the content pack: /#vendor-<id>", () => {
 });
 
 describe("accessibility structure and display safety", () => {
-  it("has one main landmark, one banner status inside the header, and a tabpanel that is not the main", async () => {
+  it("has one main landmark, the banner as the first content in main, one page h1, and a tabpanel that is not the main", async () => {
     await ready();
     expect(screen.getAllByRole("main")).toHaveLength(1);
-    expect(screen.getByRole("banner")).toContainElement(screen.getByTestId("banner"));
-    expect(screen.getByRole("tabpanel")).not.toBe(screen.getByRole("main"));
+    const main = screen.getByRole("main");
+    expect(main).toContainElement(screen.getByTestId("banner"));
+    expect(main.querySelector(".page-title")).toBeTruthy();
+    expect(document.querySelectorAll("h1")).toHaveLength(1);
+    expect(screen.getByRole("tabpanel")).not.toBe(main);
   });
   it("control and bidi characters are shown as visible escapes", () => {
     expect(visible("a" + String.fromCharCode(0x202e) + "b")).toBe("a\\u202eb");

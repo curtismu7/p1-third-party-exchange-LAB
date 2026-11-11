@@ -80,7 +80,7 @@ function FriendlyFail({ detail, onAgain }) {
     <section className="panel panel--warn" role="alert" data-testid="wire-failed">
       <h2>The run is not available right now</h2>
       <p>The server does not have this run any more (it may have restarted). Running the exchange again makes a new one.</p>
-      <p><button type="button" onClick={onAgain} data-testid="wire-again">Run it again</button></p>
+      <p><button type="button" className="primary" onClick={onAgain} data-testid="wire-again">Run it again</button></p>
       <details><summary>Details</summary><p className="muted">{detail || "no details"}</p></details>
     </section>
   );

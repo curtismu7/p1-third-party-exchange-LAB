@@ -24,6 +24,7 @@ export default function WireItem({ item, evidence, open = false, jwks = null }) 
       {tokens.length > 0 && <p className="wire-tools"><label className="check"><input type="checkbox" checked={decode} onChange={(e) => setOverride(e.target.checked)} data-testid={`decode-${item.key}`} /> Decode tokens ({tokens.length})</label>{decode && <label className="check"><input type="checkbox" checked={showRaw} onChange={(e) => setShowRaw(e.target.checked)} data-testid={`raw-${item.key}`} /> show raw</label>}</p>}
       <div className="wire-cols">
         <div>
+          {/* ui-pattern: allow P9 wire copies are affordances, not the page primary */}
           <h4>Request <CopyButton text={item.requestText} label="Copy request" /> <CopyButton text={item.curl} label="Copy curl" /></h4>
           <pre className="json json--wrap" tabIndex={0} aria-label={`Request ${item.n}`} data-testid={`wire-${item.key}-request`}>{show(item.requestText)}</pre>
           <h4>curl</h4>

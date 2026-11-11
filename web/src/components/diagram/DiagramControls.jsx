@@ -124,7 +124,7 @@ function DiagramControls({
           {!isSimulating ? (
             <button
               type="button"
-              className="dc-ctrl-btn dc-ctrl-btn--simulate"
+              className="dc-ctrl-btn dc-ctrl-btn--simulate primary"
               onClick={onSimulate}
             >
               Simulate
