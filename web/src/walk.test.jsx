@@ -199,7 +199,7 @@ describe("See everything on one page", () => {
     await userEvent.click(screen.getByTestId("contents-5"));
     expect(scroll).toHaveBeenCalled();
     expect(window.location.hash).toBe("#walk=all");
-    expect(document.querySelectorAll("h1")).toHaveLength(0);
+    expect(document.querySelectorAll("h1")).toHaveLength(1); // the shell page-title is the one h1
     await userEvent.click(screen.getByTestId("all-toggle"));
     expect(await screen.findByTestId("kicker")).toHaveTextContent("Step 3 of 7");
     expect(window.location.hash).toBe("#walk=3");

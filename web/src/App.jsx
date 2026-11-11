@@ -185,35 +185,37 @@ function AppInner() {
   const banner = config ? config.banner : hosted === true ? BANNER_HOSTED : hosted === false ? BANNER_LOCAL : BANNER_UNKNOWN;
   return (
     <div className={`app${presenter ? " app--presenter" : ""}`}>
-      <header>
+      <header className="shell-bar">
+        <span className="shell-brand"><span className="shell-logo" aria-hidden="true">P1</span> Third-Party Exchange</span>
+        <span className="shell-spacer" />
+        <span className="shell-right">
+          <ShelfLink />
+          <ModeToggle info={info} onSelect={selectMode} />
+          {!presenter && (
+            <label className="inline">Vertical{" "}
+              <select value={vertical} onChange={(e) => setVertical(e.target.value)}>
+                {(config ? config.verticals : ["retail"]).map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </label>
+          )}
+          <FontSize />
+          <label className="shell-theme">Theme
+            <select value={theme} onChange={(e) => pickTheme(e.target.value)}>
+              {THEMES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+            </select>
+          </label>
+          <button type="button" onClick={reset} data-testid="reset">Reset</button>
+          <button type="button" aria-pressed={presenter} onClick={() => setPresenter((v) => !v)} data-testid="presenter">{presenter ? "Exit presenter (Esc)" : "Presenter (P)"}</button>
+        </span>
+      </header>
+      <main className="page">
         <p className="banner" role="status" data-testid="banner">{banner}</p>
         <div className="head">
           <div>
-            <p className="brand"><b>P1</b> Third-Party Exchange</p>
+            <h1 className="page-title">PingOne token exchange with third-party tokens</h1>
             {!presenter && config && tab !== "walk" && <p className="intro">{config.intro}</p>}
           </div>
-          <div className="head__tools">
-            <ShelfLink />
-            <ModeToggle info={info} onSelect={selectMode} />
-            {!presenter && (
-              <label className="inline">Vertical{" "}
-                <select value={vertical} onChange={(e) => setVertical(e.target.value)}>
-                  {(config ? config.verticals : ["retail"]).map((v) => <option key={v} value={v}>{v}</option>)}
-                </select>
-              </label>
-            )}
-            <FontSize />
-            <label className="shell-theme">Theme
-              <select value={theme} onChange={(e) => pickTheme(e.target.value)}>
-                {THEMES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-              </select>
-            </label>
-            <button type="button" onClick={reset} data-testid="reset">Reset</button>
-            <button type="button" aria-pressed={presenter} onClick={() => setPresenter((v) => !v)} data-testid="presenter">{presenter ? "Exit presenter (Esc)" : "Presenter (P)"}</button>
-          </div>
         </div>
-      </header>
-      <main>
         <p className="sr-only" role="status" aria-live="polite">{resetMsg}</p>
         <div role="tablist" aria-label="Sections" className="tabs tabs--primary">
           <button id="tab-walk" role="tab" type="button" aria-selected={tab === "walk"} aria-controls="panel-walk" onClick={() => select("walk")}>{WALK_TAB.label}</button>
@@ -228,7 +230,7 @@ function AppInner() {
           </div>
         )}
         <div id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`}>
-          {tab !== "walk" && <h1 className="sr-only">{(tabs.find((t) => t.id === tab) || {}).label}</h1>}
+          {tab !== "walk" && <p className="sr-only">{(tabs.find((t) => t.id === tab) || {}).label}</p>}
           {error ? <p className="app-error" role="alert">Could not load the app ({error}). Is the server running?</p> : !config ? <p className="muted">Loading...</p> : (
             <>
               {presenter && tab !== "talk" && (

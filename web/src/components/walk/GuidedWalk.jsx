@@ -55,7 +55,7 @@ export default function GuidedWalk({ step, setStep, allView, setAllView, ...rest
       <div className="walkbar"><div className="in">
         <button type="button" className="btn" disabled={step === 0} onClick={() => setStep(step - 1)} data-testid="walk-back">← Back</button>
         <div className="where" aria-live="polite" data-testid="walk-where">Step {step + 1} of {STEPS.length}: {STEPS[step].title}</div>
-        <button type="button" className="btn go" onClick={() => setStep(last ? 0 : step + 1)} data-testid="walk-next">{last ? "Start over" : "Next →"}</button>
+        <button type="button" className="btn go primary" onClick={() => setStep(last ? 0 : step + 1)} data-testid="walk-next">{last ? "Start over" : "Next →"}</button>
       </div></div>
     </div>
   );

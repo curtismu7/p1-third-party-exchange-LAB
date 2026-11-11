@@ -90,7 +90,7 @@ export default function LiveTab({ reasons }) {
         </div>
         <label htmlFor="live-confirm">Type the environment id to confirm</label>
         <input id="live-confirm" type="text" value={confirm} onChange={(e) => setConfirm(e.target.value)} data-testid="live-confirm" autoComplete="off" />
-        <p><button type="button" disabled={!typed || busy || !(picked || []).length} onClick={run} data-testid="live-run-btn">{busy ? "Running..." : "Run live"}</button>{" "}
+        <p><button type="button" className="primary" disabled={!typed || busy || !(picked || []).length} onClick={run} data-testid="live-run-btn">{busy ? "Running..." : "Run live"}</button>{" "}
           <button type="button" disabled={!typed || busy} onClick={cleanup} data-testid="live-cleanup-btn">Clean up leftovers</button></p>
         {msg && <p className="muted" role="status" data-testid="live-msg">{msg}</p>}
       </section>
@@ -113,7 +113,7 @@ export default function LiveTab({ reasons }) {
               </table>
             </div>
             <h3>Mismatches ({report.mismatches.length}) <CopyButton text={mismatchText(report.mismatches)} label="Copy list" /></h3>
-            <textarea readOnly rows={Math.min(10, Math.max(3, report.mismatches.length + 1))} value={report.mismatches.length ? mismatchText(report.mismatches) : "No mismatches: the mock predicted every scenario."} data-testid="live-mismatches" />
+            <textarea readOnly rows={Math.min(10, Math.max(3, report.mismatches.length + 1))} value={report.mismatches.length ? mismatchText(report.mismatches) : "No mismatches: the mock predicted every scenario."} aria-label="Mismatch list (read only)" data-testid="live-mismatches" />
             <h3>Cleanup {report.cleanup && report.cleanup.ok ? "done" : "INCOMPLETE"}</h3>
             <p data-testid="live-cleanup-result">{report.cleanup ? (report.cleanup.error || (report.cleanup.ok ? `Run ${report.runName}: everything it created was deleted and nothing named p1x-live remains.` : `Objects named p1x-live still remain (this run clean: ${String(report.cleanup.thisRunClean)}). Use "Clean up leftovers".`)) : "No cleanup report."}</p>
           </section>

@@ -87,7 +87,7 @@ export default function RealLocalTab({ resetSignal }) {
         <h2 id="rl-send">Send</h2>
         <label htmlFor="rl-confirm">Type the environment id to confirm</label>
         <input id="rl-confirm" type="text" value={f.confirm} onChange={set("confirm")} autoComplete="off" data-testid="rl-confirm" />
-        <p><button type="button" disabled={!typed || busy} onClick={send} data-testid="rl-send">{busy ? "Sending..." : "Send the real exchange"}</button></p>
+        <p><button type="button" className="primary" disabled={!typed || busy} onClick={send} data-testid="rl-send">{busy ? "Sending..." : "Send the real exchange"}</button></p>
         {msg && <p className="field-error" role="alert" data-testid="rl-msg">{msg}</p>}
       </section>
       {out && (

@@ -107,7 +107,7 @@ export default function RealBrowserTab({ resetSignal }) {
         <h2 id="rb-send">Send</h2>
         {draft.error && f.endpoint.trim() && <p className="muted" data-testid="rb-draft-error">{draft.error}</p>}
         <label className="check"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} data-testid="rb-confirm" /> I understand this sends a real request to MY PingOne</label>
-        <p><button type="button" disabled={!ready} onClick={send} data-testid="rb-send-btn">{busy ? "Sending..." : "Send real request from my browser"}</button></p>
+        <p><button type="button" className="primary" disabled={!ready} onClick={send} data-testid="rb-send-btn">{busy ? "Sending..." : "Send real request from my browser"}</button></p>
         {sent && sent.error && <p className="field-error" role="alert" data-testid="rb-error">{sent.error}</p>}
       </section>
       {item && (
