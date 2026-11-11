@@ -1,6 +1,7 @@
 code { font-size: var(--font-size-2xs); }
+html { font-size: var(--fs, 16px); } /* the TopMenu text-size control */
 .app { padding: 0 16px 32px; }
-.shell-bar { display: flex; align-items: center; gap: 0.5rem 1.25rem; flex-wrap: wrap; padding: 0.6rem 1rem; background: var(--box-dark); color: var(--on-box); border-bottom: 3px solid transparent; border-image: var(--accent-gradient) 1; margin: 0 -16px; }
+.shell-bar { position: relative; /* the TopMenu sign-in slot centers against the bar */ display: flex; align-items: center; gap: 0.5rem 1.25rem; flex-wrap: wrap; padding: 0.6rem 1rem; background: var(--box-dark); color: var(--on-box); border-bottom: 3px solid transparent; border-image: var(--accent-gradient) 1; margin: 0 -16px; }
 .shell-brand { display: inline-flex; align-items: center; gap: 0.6rem; font-weight: 700; letter-spacing: 0.02em; flex-wrap: wrap; }
 .shell-logo { width: 1.9rem; height: 1.9rem; border-radius: 4px; background: var(--accent-gradient); color: var(--on-accent); display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; }
 .shell-spacer { flex: 1; }

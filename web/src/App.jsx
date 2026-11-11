@@ -12,8 +12,8 @@ import RealBrowserTab from "./components/RealBrowserTab";
 import RealLocalTab from "./components/RealLocalTab";
 import GuidedWalk from "./components/walk/GuidedWalk";
 import { STEPS } from "./components/walk/steps";
-import FontSize from "./components/FontSize";
-import ModeToggle from "./components/ModeToggle";
+import { REFIT_EVENT } from "./hooks/useFitOnResize";
+import TopMenu, { applyFontSize } from "./top-menu/TopMenu";
 import { exchange, getJson, resetWorkspace, postMode } from "./api";
 import ShelfLink from "./components/ShelfLink.jsx";
 
@@ -80,11 +80,21 @@ function AppInner() {
   const [run, setRun] = useState(null);
   const [fail, setFail] = useState(null);
   const [theme, setTheme] = useState(initialTheme);
+  // Text size: S/M/L (the shared TopMenu control) driving the root --fs; the percent-based FontSize stepper it
+  // replaces also refreshed the diagram, so a change re-fits it too.
+  const [fontStep, setFontStep] = useState(() => { try { const f = localStorage.getItem("p1tpx.fontstep"); return ["S", "M", "L"].includes(f) ? f : "M"; } catch { return "M"; } });
   const tabsRef = useRef(null);
   const selRef = useRef(null);
   const wantVendor = useRef(hashParts().vendor);
 
   useEffect(() => { if (theme === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme; }, [theme]);
+
+  useEffect(() => {
+    applyFontSize(fontStep);
+    try { localStorage.setItem("p1tpx.fontstep", fontStep); } catch { /* not remembered */ }
+    const t = setTimeout(() => window.dispatchEvent(new Event(REFIT_EVENT)), 50); // let the diagram re-fit after the text grows
+    return () => clearTimeout(t);
+  }, [fontStep]);
 
   const pickTheme = (next) => {
     try { if (next === "auto") localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, next); } catch { /* not remembered */ }
@@ -189,23 +199,19 @@ function AppInner() {
         <span className="shell-brand"><span className="shell-logo" aria-hidden="true">P1</span> Third-Party Exchange</span>
         <span className="shell-spacer" />
         <span className="shell-right">
-          <ShelfLink />
-          <ModeToggle info={info} onSelect={selectMode} />
-          {!presenter && (
-            <label className="inline">Vertical{" "}
-              <select value={vertical} onChange={(e) => setVertical(e.target.value)}>
-                {(config ? config.verticals : ["retail"]).map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </label>
-          )}
-          <FontSize />
-          <label className="shell-theme">Theme
-            <select value={theme} onChange={(e) => pickTheme(e.target.value)}>
-              {THEMES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-            </select>
-          </label>
-          <button type="button" onClick={reset} data-testid="reset">Reset</button>
-          <button type="button" aria-pressed={presenter} onClick={() => setPresenter((v) => !v)} data-testid="presenter">{presenter ? "Exit presenter (Esc)" : "Presenter (P)"}</button>
+          <TopMenu
+            mode={{ value: info?.source === "real" ? "real" : "mock", onChange: selectMode, realAvailable: info ? info.realAvailable === true : null, realHint: info && info.realAvailable !== true ? (info.live?.reasons || []).join("; ") || undefined : undefined }}
+            vertical={{ value: vertical, onChange: setVertical, options: config ? config.verticals : ["retail"] }}
+            theme={{ value: theme, onChange: pickTheme }}
+            fontSize={{ value: fontStep, onChange: setFontStep }}
+            present={{ active: presenter, onToggle: () => setPresenter((v) => !v), label: "Presenter (P)" }}
+            talkTrack={{ active: tab === "talk", onToggle: () => select("talk") }}
+            help={{ href: "https://github.com/curtismu7/p1-third-party-exchange-LAB#readme" }}
+            version={info?.version || null}
+            onReset={reset}
+          >
+            <ShelfLink />
+          </TopMenu>
         </span>
       </header>
       <main className="page">

@@ -42,7 +42,7 @@ export function createApp({ health = createHealth(), configFile = CONFIG, hosted
   let modeSource = liveGate(env, { hosted }).allowed ? 'real' : 'mock';
   const modeInfo = () => {
     const g = liveGate(env, { hosted });
-    const body = { mode: g.allowed ? 'live' : 'mock', simulated: true, hosted, source: modeSource, realAvailable: g.allowed };
+    const body = { mode: g.allowed ? 'live' : 'mock', simulated: true, hosted, source: modeSource, realAvailable: g.allowed, version: health.DEMO.version || null };
     if (g.requested) body.live = { requested: true, enabled: g.allowed, reasons: g.reasons };
     return body;
   };

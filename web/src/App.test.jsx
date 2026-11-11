@@ -85,7 +85,7 @@ describe("shell", () => {
   it("shows the banner, the mode, and sends X-Workspace on API calls", async () => {
     await ready();
     expect(screen.getByTestId("banner")).toHaveTextContent(/^SIMULATED/);
-    expect(screen.getByTestId("mode-mock")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("mode-select")).toHaveValue("mock");
     const ex = calls.find((c) => c.url === "/api/exchange");
     expect(ex.opts.headers["x-workspace"]).toMatch(/^[a-z0-9-]{1,40}$/);
   });
@@ -278,7 +278,7 @@ describe("talk track and presenter mode", () => {
     override.vendors = async () => ({ ok: true, status: 200, json: async () => ({ ...CONFIG, banner: "HOSTED SIMULATION: x", hosted: true }) });
     render(<App />);
     await waitFor(() => expect(screen.getByTestId("banner")).toHaveTextContent(/^HOSTED SIMULATION/));
-    expect(screen.getByTestId("mode-real")).toBeDisabled();
+    expect(screen.getByRole("option", { name: "Real" })).toBeDisabled();
   });
 });
 

@@ -194,7 +194,7 @@ describe("See everything on one page", () => {
     expect(screen.getByTestId("all-toggle")).toHaveTextContent("Back to the walk");
     for (let n = 1; n <= 7; n++) expect(screen.getByTestId(`walk-all-${n}`)).toBeInTheDocument();
     expect(within(screen.getByTestId("contents")).getAllByRole("button")).toHaveLength(7);
-    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByRole("link", { name: /Shelf/ })).toBeNull();
     const scroll = vi.fn(); Element.prototype.scrollIntoView = scroll;
     await userEvent.click(screen.getByTestId("contents-5"));
     expect(scroll).toHaveBeenCalled();
@@ -250,8 +250,8 @@ describe("text size control", () => {
   });
   it("is in the header of the app on every tab", async () => {
     await ready();
-    expect(screen.getByTestId("fontctl")).toBeInTheDocument();
+    expect(screen.getByTestId("font-select")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("tab", { name: "Advanced" }));
-    expect(screen.getByTestId("fontctl")).toBeVisible();
+    expect(screen.getByTestId("font-select")).toBeVisible();
   });
 });
