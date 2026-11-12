@@ -1,5 +1,6 @@
 # Build the web app, then run the API server, which also serves web/dist. Same pattern as the other demos.
 FROM node:22-alpine AS build
+RUN apk add --no-cache git
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY web/package.json web/
