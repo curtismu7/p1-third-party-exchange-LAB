@@ -199,7 +199,8 @@ function AppInner() {
         <span className="shell-brand"><span className="shell-logo" aria-hidden="true">P1</span> Third-Party Exchange</span>
         <span className="shell-spacer" />
         <span className="shell-right">
-          <TopMenu
+          <span className="mode-toggle" style={{ display: "contents" }}>
+            <TopMenu
             mode={{ value: info?.source === "real" ? "real" : "mock", onChange: selectMode, realAvailable: info ? info.realAvailable === true : null, realHint: info && info.realAvailable !== true ? (info.live?.reasons || []).join("; ") || undefined : undefined }}
             vertical={{ value: vertical, onChange: setVertical, options: config ? config.verticals : ["retail"] }}
             theme={{ value: theme, onChange: pickTheme }}
@@ -212,6 +213,7 @@ function AppInner() {
           >
             <ShelfLink />
           </TopMenu>
+          </span>
         </span>
       </header>
       <main className="page">
