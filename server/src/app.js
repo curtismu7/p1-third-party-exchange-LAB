@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { hostCheck, sameOriginWrites } from './safety.js';
-import { createHealth } from './health.js';
+import { createHealth, DEMO } from './health.js';
 import { loadCast, verticalFrom, VERTICALS } from './cast.js';
 import { liveGate } from './live/gate.js';
 import { LIVE_BANNER, createLiveRouter } from './live/routes.js';
@@ -42,7 +42,7 @@ export function createApp({ health = createHealth(), configFile = CONFIG, hosted
   let modeSource = liveGate(env, { hosted }).allowed ? 'real' : 'mock';
   const modeInfo = () => {
     const g = liveGate(env, { hosted });
-    const body = { mode: g.allowed ? 'live' : 'mock', simulated: true, hosted, source: modeSource, realAvailable: g.allowed, version: health.DEMO.version || null };
+    const body = { mode: g.allowed ? 'live' : 'mock', simulated: true, hosted, source: modeSource, realAvailable: g.allowed, version: DEMO.version || null };
     if (g.requested) body.live = { requested: true, enabled: g.allowed, reasons: g.reasons };
     return body;
   };
