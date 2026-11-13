@@ -53,13 +53,17 @@ test('unknown API paths are 404 JSON', async () => {
 
 test('GET /api/info says what this build is: mock, simulated, and hosted only when asked', async () => {
   await withServer(async (url) => {
-    assert.deepEqual(await (await fetch(`${url}/api/info`)).json(), { mode: 'mock', simulated: true, hosted: false, source: 'mock', realAvailable: false });
+    const info = await (await fetch(`${url}/api/info`)).json();
+    delete info.version;
+    assert.deepEqual(info, { mode: 'mock', simulated: true, hosted: false, source: 'mock', realAvailable: false });
     const j = await (await fetch(`${url}/api/vendors`)).json();
     assert.equal(j.hosted, false);
     assert.match(j.banner, /^SIMULATED/);
   });
   await withServer(async (url) => {
-    assert.deepEqual(await (await fetch(`${url}/api/info`)).json(), { mode: 'mock', simulated: true, hosted: true, source: 'mock', realAvailable: false });
+    const info = await (await fetch(`${url}/api/info`)).json();
+    delete info.version;
+    assert.deepEqual(info, { mode: 'mock', simulated: true, hosted: true, source: 'mock', realAvailable: false });
     assert.match((await (await fetch(`${url}/api/vendors`)).json()).banner, /^HOSTED SIMULATION/);
   }, { hosted: true });
 });
@@ -275,7 +279,7 @@ test('GET /api/real-prefill returns only whitelisted non-secret fields locally a
   const env = { P1TPX_PREFILL_FILE: file };
   await withServer(async (url) => {
     const j = await (await fetch(`${url}/api/real-prefill`)).json();
-    assert.deepEqual(j, { clientId: 'x', scope: 'openid' });
+    assert.deepEqual(Object.assign(j, { version: undefined }), { clientId: 'x', scope: 'openid' });
   }, { env });
   await withServer(async (url) => { assert.equal((await fetch(`${url}/api/real-prefill`)).status, 404); }, { hosted: true, env });
   await withServer(async (url) => { assert.deepEqual(await (await fetch(`${url}/api/real-prefill`)).json(), {}); }, { env: { P1TPX_PREFILL_FILE: path.join(dir, 'missing.json') } });
