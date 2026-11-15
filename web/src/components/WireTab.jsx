@@ -5,7 +5,8 @@ import { jwksFromWire } from "../tokenDecode";
 import TokenBlock from "./TokenBlock";
 import { getJson } from "../api";
 import { decodeJwt } from "../jwt";
-import { visible } from "../safeText";
+import Json from "./Json";
+import { TOKEN_HOT } from "./jsonHot";
 
 function DecodeBox() {
   const [text, setText] = useState("");
@@ -17,7 +18,7 @@ function DecodeBox() {
       <label htmlFor="dec-in">Token</label>
       <textarea id="dec-in" rows={4} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} data-testid="decode-input" />
       {d && (d.error ? <p className="field-error" data-testid="decode-error">{d.error}</p> : (
-        <div data-testid="decode-out"><p className="muted">Header</p><pre className="json json--wrap">{visible(JSON.stringify(d.header, null, 2))}</pre><p className="muted">Payload</p><pre className="json json--wrap">{visible(JSON.stringify(d.payload, null, 2))}</pre></div>
+        <div data-testid="decode-out"><p className="muted">Header</p><Json value={d.header} label="Decoded header" hot={TOKEN_HOT} /><p className="muted">Payload</p><Json value={d.payload} label="Decoded payload" hot={TOKEN_HOT} /></div>
       ))}
     </section>
   );

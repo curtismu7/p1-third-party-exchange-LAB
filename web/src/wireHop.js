@@ -7,3 +7,7 @@ export function wireHopText(run, hop) {
   const items = key === "attrs" ? all.filter((i) => i.key.startsWith("attr-")) : all.filter((i) => i.key === key);
   return items.map((i) => (part === "req" ? i.requestText : part === "res" ? i.responseText : `${i.requestText}\n\n${i.responseText}`)).join("\n\n");
 }
+
+// wireHopText joins calls, and a call's request and response, with a blank line: one string per HTTP message, so the JsonPane
+// (which keeps a message's headers as text and gives its JSON body a Form | JSON pane) gets one transcript at a time.
+export const wireMessages = (text) => String(text).split(/\n\n(?=(?:[A-Z]{3,7} \S+ HTTP\/|HTTP\/\d))/);

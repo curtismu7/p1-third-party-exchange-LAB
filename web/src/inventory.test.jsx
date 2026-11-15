@@ -7,6 +7,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import { inject } from "vitest";
+import { setJsonView } from "./components/JsonPane.jsx";
 
 const FX = inject("inventory");
 const D = FX.D;
@@ -27,7 +28,7 @@ function install() {
     return json({}, 404);
   });
 }
-beforeEach(() => { try { window.localStorage.clear(); } catch { /* none */ } document.documentElement.style.fontSize = ""; install(); lastRun = null; });
+beforeEach(() => { try { window.localStorage.clear(); } catch { /* none */ } setJsonView("raw"); /* the inventory reads the JSON text */ document.documentElement.style.fontSize = ""; install(); lastRun = null; });
 
 // ---- the inventory --------------------------------------------------------------------------------------------------------------
 const q = (root, sel) => root.querySelector(sel);

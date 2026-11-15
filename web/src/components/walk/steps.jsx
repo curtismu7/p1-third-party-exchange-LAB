@@ -7,6 +7,7 @@ import DiagramTab from "../DiagramTab";
 import CompareTab from "../CompareTab";
 import AdminTab from "../AdminTab";
 import Json from "../Json";
+import { ISSUER_HOT } from "../jsonHot";
 import Tag from "../Tag";
 import WireItem from "../WireItem";
 import { ChecksTable, MappingList, Verdict } from "../ResultParts";
@@ -67,7 +68,7 @@ export function TokenView({ token, where, jwks }) {
     <>
       <p><DecodeSwitch /></p>
       {on ? <DecodedTokens tokens={[{ where, token }]} jwks={jwks} /> : (
-        <><p className="muted">Raw token <CopyButton text={token} label="Copy token" /></p><pre className="json json--wrap json--raw" data-testid="walk-raw-token">{token}</pre></>
+        <><p className="muted">Raw token <CopyButton text={token} label="Copy token" /></p><Json value={token} label="Raw token" testId="walk-raw-token" /></>
       )}
     </>
   );
@@ -128,7 +129,7 @@ export function StepTrust({ headRef, config, sel, setSel, run }) {
         </div>
         <div className="card"><h3>What the admin sends</h3>
           <p className="muted">POST /trustedIssuers, exactly as it goes on the wire. It changes as you change the switches. <Tag kind="measured" evidence={config.evidence} /></p>
-          {issuerCall ? <><p><CopyButton text={issuerCall.requestBody} label="Copy body" /></p><pre className="json json--wrap" tabIndex={0} aria-label="Trusted issuer request body" data-testid="walk-issuer-body">{visible(issuerCall.requestBodyPretty)}</pre></> : <p className="muted">Loading...</p>}
+          {issuerCall ? <><p><CopyButton text={issuerCall.requestBody} label="Copy body" /></p><Json value={issuerCall.requestBodyPretty} label="Trusted issuer request body" testId="walk-issuer-body" hot={ISSUER_HOT} /></> : <p className="muted">Loading...</p>}
         </div>
       </div>
       <Why>this is the whole admin job: one trusted issuer, one assignment. The switches decide which tokens get through.</Why>

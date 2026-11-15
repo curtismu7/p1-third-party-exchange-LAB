@@ -1,5 +1,7 @@
 import { Fragment } from "react";
 import { visible } from "../safeText";
+import Json from "./Json";
+import { ISSUER_HOT } from "./jsonHot";
 
 // A small Markdown renderer for the setup guide. It builds React elements only: text is always a React text child, so a
 // "<script>" or "<img onerror=...>" in the guide shows as literal text. There is no raw HTML path and no link support.
@@ -68,7 +70,7 @@ export default function Markdown({ text }) {
     <div className="md" data-testid="markdown">
       {parseBlocks(text).map((b, i) => {
         if (b.type === "heading") { const H = `h${Math.min(b.level + 1, 5)}`; return <H key={i}><Inline text={b.text} /></H>; }
-        if (b.type === "code") return <pre key={i} className="json" tabIndex={0}>{visible(b.text)}</pre>;
+        if (b.type === "code") return <Json key={i} value={b.text} label="Code example" hot={ISSUER_HOT} />;
         if (b.type === "ul" || b.type === "ol") { const L = b.type; return <L key={i}>{b.items.map((t, j) => <li key={j}><Inline text={t} /></li>)}</L>; }
         if (b.type === "table") {
           return (

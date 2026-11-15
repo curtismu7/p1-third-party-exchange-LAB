@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { getJson } from "../api";
 import Json from "./Json";
+import { ISSUER_HOT } from "./jsonHot";
 import Tag from "./Tag";
 
 export default function AdminTab({ evidence }) {
@@ -13,8 +14,8 @@ export default function AdminTab({ evidence }) {
     <div className="gate">
       <section className="panel" aria-labelledby="adm-api">
         <h2 id="adm-api">Admin API <Tag kind="guide" evidence={evidence} /></h2>
-        <h3>POST /trustedIssuers</h3><Json value={data.apiSamples.trustedIssuer} label="Trusted issuer request" testId="api-issuer" />
-        <h3>POST /applications/&lt;appId&gt;/trustedIssuerAssignments</h3><Json value={data.apiSamples.assignment} label="Assignment request" testId="api-assignment" />
+        <h3>POST /trustedIssuers</h3><Json value={data.apiSamples.trustedIssuer} label="Trusted issuer request" testId="api-issuer" hot={ISSUER_HOT} />
+        <h3>POST /applications/&lt;appId&gt;/trustedIssuerAssignments</h3><Json value={data.apiSamples.assignment} label="Assignment request" testId="api-assignment" hot={ISSUER_HOT} />
       </section>
       <section className="panel" aria-labelledby="adm-facts">
         <h2 id="adm-facts">Permissions, events and licensing <Tag kind="guide" evidence={evidence} /></h2>

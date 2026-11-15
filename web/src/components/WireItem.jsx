@@ -5,6 +5,8 @@ import DecodedTokens from "./DecodedTokens";
 import { useDecode } from "./DecodeContext";
 import { collapseTokens, findTokens } from "../tokenDecode";
 import { visible } from "../safeText";
+import Json from "./Json";
+import { WIRE_HOT } from "./jsonHot";
 
 // One HTTP call in full: URL, every request header, the exact raw request body, a curl, the status, every response header and the
 // response body. Nothing is abbreviated. Copy buttons for the request, the response and the curl.
@@ -16,7 +18,8 @@ export default function WireItem({ item, evidence, open = false, jwks = null }) 
   const decode = tokens.length > 0 && (override === null ? global.on : override);
   // ON-SCREEN only: with decoding on, a long raw token becomes a one-line placeholder. Copy buttons and curl always use the full raw text.
   const shorten = decode && !showRaw;
-  const show = (t) => visible(shorten ? collapseTokens(t, tokens) : t);
+  const collapse = (t) => (shorten ? collapseTokens(t, tokens) : t);
+  const show = (t) => visible(collapse(t));
   return (
     <details className="wire-item" open={open} data-testid={`wire-${item.key}`}>
       <summary><strong>{item.n}. {item.label}</strong> <code>{item.method} {item.url}</code> <span className={item.status >= 400 ? "bad" : "ok"}>{item.status} {item.statusText}</span> <Tag kind={item.evidence} evidence={evidence} /></summary>
@@ -26,13 +29,13 @@ export default function WireItem({ item, evidence, open = false, jwks = null }) 
         <div>
           {/* ui-pattern: allow P9 wire copies are affordances, not the page primary */}
           <h4>Request <CopyButton text={item.requestText} label="Copy request" /> <CopyButton text={item.curl} label="Copy curl" /></h4>
-          <pre className="json json--wrap" tabIndex={0} aria-label={`Request ${item.n}`} data-testid={`wire-${item.key}-request`}>{show(item.requestText)}</pre>
+          <div data-testid={`wire-${item.key}-request`}><Json value={collapse(item.requestText)} label={`Request ${item.n}`} hot={WIRE_HOT} /></div>
           <h4>curl</h4>
           <pre className="json json--wrap" tabIndex={0} aria-label={`curl ${item.n}`}>{show(item.curl)}</pre>
         </div>
         <div>
           <h4>Response <CopyButton text={item.responseText} label="Copy response" /> <CopyButton text={item.responseBody} label="Copy body" /></h4>
-          <pre className="json json--wrap" tabIndex={0} aria-label={`Response ${item.n}`} data-testid={`wire-${item.key}-response`}>{show(item.responseText)}</pre>
+          <div data-testid={`wire-${item.key}-response`}><Json value={collapse(item.responseText)} label={`Response ${item.n}`} hot={WIRE_HOT} /></div>
         </div>
       </div>
       {decode && <DecodedTokens tokens={tokens} jwks={jwks} />}
