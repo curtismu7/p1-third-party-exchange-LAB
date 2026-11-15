@@ -4,7 +4,9 @@ import "@xyflow/react/dist/style.css";
 import DiagramStepBar from "./DiagramStepBar";
 import { useDiagramStepper } from "../hooks/useDiagramStepper";
 import { REFIT_EVENT, useFitOnResize } from "../hooks/useFitOnResize";
-import { visible } from "../safeText";
+import Json from "./Json";
+import { WIRE_HOT } from "./jsonHot";
+import { wireMessages } from "../wireHop";
 import CopyButton from "./CopyButton";
 import "./PatternDiagram.css";
 
@@ -113,7 +115,7 @@ export default function PatternDiagram({ pattern, resetSignal = 0 }) {
         <article className="track__now" data-testid="pattern-now">
           <h3>Step {stepper.step + 1}: {step.title || step.label}</h3>
           <p>{step.say}</p>
-          {step.payload && (<><p className="muted">Payload (the real wire text of this step) <CopyButton text={step.payload} label="Copy payload" /></p><pre className="pat-json pat-json--wrap" tabIndex={0} aria-label="Payload of this step" data-testid="pattern-payload">{visible(step.payload)}</pre></>)}
+          {step.payload && (<><p className="muted">Payload (the real wire text of this step) <CopyButton text={step.payload} label="Copy payload" /></p><div data-testid="pattern-payload">{wireMessages(step.payload).map((m, i) => <Json key={i} value={m} label="Payload of this step" hot={WIRE_HOT} />)}</div></>)}
         </article>
       )}
       <ReactFlowProvider>

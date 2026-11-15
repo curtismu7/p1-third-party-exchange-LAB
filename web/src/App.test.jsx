@@ -6,6 +6,7 @@ import { labelOffsets } from "./components/PatternDiagram";
 import { diagramQuery } from "./components/DiagramTab";
 import { fromStudio } from "./studio";
 import { visible } from "./safeText";
+import { setJsonView } from "./components/JsonPane.jsx";
 
 const EVIDENCE = {
   measured: { label: "MEASURED", note: "Run live." }, guide: { label: "GUIDE", note: "Stated in the guide." }, sample: { label: "SAMPLE", note: "A sample." },
@@ -77,7 +78,8 @@ function mockFetch() {
     return json({}, 404);
   });
 }
-beforeEach(() => { override = {}; mockFetch(); window.location.hash = "#exchange"; });
+// The Form | JSON choice is shared module state: these tests read the JSON text, so they ask for the JSON view.
+beforeEach(() => { override = {}; mockFetch(); window.location.hash = "#exchange"; setJsonView("raw"); });
 
 const ready = async () => { render(<App />); await screen.findByTestId("vendor-okta"); await screen.findByTestId("verdict"); };
 

@@ -1,6 +1,7 @@
 import CopyButton from "./CopyButton";
 import { decodeJwt } from "../jwt";
-import { visible } from "../safeText";
+import Json from "./Json";
+import { TOKEN_HOT } from "./jsonHot";
 
 // A token shown in full: the raw three-part string (never truncated, wrapped), and the header and payload decoded FROM that string.
 export default function TokenBlock({ label, token, testId }) {
@@ -12,13 +13,13 @@ export default function TokenBlock({ label, token, testId }) {
       {d.error ? <p className="field-error">{d.error}</p> : (
         <>
           <p className="muted">Header</p>
-          <pre className="json json--wrap" tabIndex={0} aria-label={`${label} header`}>{visible(JSON.stringify(d.header, null, 2))}</pre>
+          <Json value={d.header} label={`${label} header`} hot={TOKEN_HOT} />
           <p className="muted">Payload (claims)</p>
-          <pre className="json json--wrap" tabIndex={0} aria-label={`${label} payload`} data-testid={testId ? `${testId}-payload` : undefined}>{visible(JSON.stringify(d.payload, null, 2))}</pre>
+          <Json value={d.payload} label={`${label} payload`} testId={testId ? `${testId}-payload` : undefined} hot={TOKEN_HOT} />
         </>
       )}
       <p className="muted">Raw token (header.payload.signature)</p>
-      <pre className="json json--wrap json--raw" tabIndex={0} aria-label={`${label} raw`} data-testid={testId ? `${testId}-raw` : undefined}>{token}</pre>
+      <Json value={token} label={`${label} raw`} testId={testId ? `${testId}-raw` : undefined} />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { render, screen, waitFor, within, fireEvent } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import FontSize, { readFontSize } from "./components/FontSize";
+import { setJsonView } from "./components/JsonPane.jsx";
 
 const b64 = (o) => btoa(JSON.stringify(o)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
 const jwt = (c, kid = "mock-key") => `${b64({ alg: "RS256", typ: "JWT", kid })}.${b64(c)}.${"S".repeat(342)}`;
@@ -25,6 +26,7 @@ function runFor(body) {
 let calls;
 beforeEach(() => {
   try { window.localStorage.clear(); } catch { /* none */ }
+  setJsonView("raw"); // the Form | JSON choice is shared module state; these tests read the JSON text
   document.documentElement.style.fontSize = "";
   window.location.hash = "";
   calls = [];
