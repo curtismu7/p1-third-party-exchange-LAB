@@ -4,6 +4,7 @@ import "./components/JsonPane.css";
 import App from "./App.jsx";
 // The family's shared stylesheet first (tokens, controls, dark mode, banner), then this app's aliases and layout.
 import "./top-menu/top-menu.css";
+import "./components/VerifyMark.css";
 import "./standalone-ui.css";
 import "./tokens.css";
 import "./components/JsonPane.css";
