@@ -16,6 +16,7 @@ import { REFIT_EVENT } from "./hooks/useFitOnResize";
 import TopMenu, { applyFontSize } from "./top-menu/TopMenu";
 import { exchange, getJson, resetWorkspace, postMode } from "./api";
 import ShelfLink from "./components/ShelfLink.jsx";
+import VerifyMark from "./components/VerifyMark.jsx";
 
 export const TABS = [
   { id: "exchange", label: "Exchange lab" },
@@ -212,6 +213,7 @@ function AppInner() {
             onReset={reset}
           >
             <ShelfLink />
+            <VerifyMark id="p1-third-party-exchange" />
           </TopMenu>
           </span>
         </span>
