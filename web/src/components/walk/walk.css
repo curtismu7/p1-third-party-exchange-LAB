@@ -1,5 +1,5 @@
 /* The Guided walk (design A). Colours come from tokens.css only; every size is rem so the text-size control scales all of it. */
-.walk { max-width: 62rem; margin: 0 auto; padding-bottom: 7rem; font-size: 1.0625rem; line-height: 1.6; }
+.walk { max-width: 2200px; margin: 0 auto; padding-bottom: 7rem; font-size: 1.0625rem; line-height: 1.6; }
 .walk .rail { display: flex; gap: 0.5rem; padding: 0.25rem 0 1rem; }
 .walk .rail button { flex: 1; min-width: 0; border: 0; background: none; cursor: pointer; font: inherit; text-align: left; color: var(--th-text-muted); padding: 0; border-radius: 0; }
 .walk .rail button:hover { background: none; }
@@ -38,7 +38,7 @@
 .walk .btn, .walkbar .btn { font-weight: 700; border-radius: 999px; border-width: 1.5px; padding: 0.8rem 1.5rem; font-size: 1rem; }
 .walk .btn.go, .walkbar .btn.go { background: var(--accent-gradient); border-color: var(--primary-edge); color: var(--on-accent); box-shadow: var(--shadow-ink); }
 .walkbar { position: fixed; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, var(--th-bg-page) 70%, transparent); padding: 1rem 1rem 1.1rem; z-index: 20; pointer-events: none; }
-.walkbar .in { max-width: 62rem; margin: 0 auto; display: flex; gap: 0.75rem; align-items: center; pointer-events: auto; }
+.walkbar .in { max-width: 2168px; margin: 0 auto; display: flex; gap: 0.75rem; align-items: center; pointer-events: auto; }
 .walkbar .where { flex: 1; color: var(--th-text-muted); font-size: 0.85rem; text-align: center; min-width: 0; overflow-wrap: anywhere; }
 @media (max-width: 480px) { .walkbar .where { display: none; } .walkbar .in { justify-content: space-between; } .walkbar .btn { padding: 0.7rem 1.1rem; } .walk .rail span { font-size: 0.7rem; } }
 /* the diagram and wire blocks sit inside cards */
