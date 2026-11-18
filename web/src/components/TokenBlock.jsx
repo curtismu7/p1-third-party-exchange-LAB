@@ -13,13 +13,13 @@ export default function TokenBlock({ label, token, testId }) {
       {d.error ? <p className="field-error">{d.error}</p> : (
         <>
           <p className="muted">Header</p>
-          <Json value={d.header} label={`${label} header`} hot={TOKEN_HOT} />
+          <Json value={d.header} label={`${label} header`} hot={TOKEN_HOT} decode={false} />
           <p className="muted">Payload (claims)</p>
-          <Json value={d.payload} label={`${label} payload`} testId={testId ? `${testId}-payload` : undefined} hot={TOKEN_HOT} />
+          <Json value={d.payload} label={`${label} payload`} testId={testId ? `${testId}-payload` : undefined} hot={TOKEN_HOT} decode={false} />
         </>
       )}
       <p className="muted">Raw token (header.payload.signature)</p>
-      <Json value={token} label={`${label} raw`} testId={testId ? `${testId}-raw` : undefined} />
+      <Json value={token} label={`${label} raw`} testId={testId ? `${testId}-raw` : undefined} decode={false} />
     </div>
   );
 }

@@ -68,7 +68,7 @@ export function TokenView({ token, where, jwks }) {
     <>
       <p><DecodeSwitch /></p>
       {on ? <DecodedTokens tokens={[{ where, token }]} jwks={jwks} /> : (
-        <><p className="muted">Raw token <CopyButton text={token} label="Copy token" /></p><Json value={token} label="Raw token" testId="walk-raw-token" /></>
+        <><p className="muted">Raw token <CopyButton text={token} label="Copy token" /></p><Json value={token} label="Raw token" testId="walk-raw-token" decode={false} /></>
       )}
     </>
   );
