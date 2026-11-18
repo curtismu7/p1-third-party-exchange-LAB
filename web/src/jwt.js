@@ -1,8 +1,10 @@
 // Decode a JWT from the string that is on screen. No verification (the browser has no key); this only reads header and payload.
+// Rule 24b: the segment decoding is the shared pane's (components/JsonPane, meta #396); this wrapper keeps the lab's error-shape and 8192 cap.
+import { decodeSegment } from "./components/JsonPane";
 const part = (p) => {
-  const b64 = p.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(p.length / 4) * 4, "=");
-  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-  return JSON.parse(new TextDecoder().decode(bytes));
+  const v = decodeSegment(p);
+  if (!v) throw new Error("not base64url JSON");
+  return v;
 };
 /** { header, payload, signature } or { error } */
 export function decodeJwt(raw) {

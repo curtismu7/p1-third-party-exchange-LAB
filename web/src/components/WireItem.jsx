@@ -29,13 +29,13 @@ export default function WireItem({ item, evidence, open = false, jwks = null }) 
         <div>
           {/* ui-pattern: allow P9 wire copies are affordances, not the page primary */}
           <h4>Request <CopyButton text={item.requestText} label="Copy request" /> <CopyButton text={item.curl} label="Copy curl" /></h4>
-          <div data-testid={`wire-${item.key}-request`}><Json value={collapse(item.requestText)} label={`Request ${item.n}`} hot={WIRE_HOT} /></div>
+          <div data-testid={`wire-${item.key}-request`}><Json value={collapse(item.requestText)} label={`Request ${item.n}`} hot={WIRE_HOT} decode={false} /></div>
           <h4>curl</h4>
           <pre className="json json--wrap" tabIndex={0} aria-label={`curl ${item.n}`}>{show(item.curl)}</pre>
         </div>
         <div>
           <h4>Response <CopyButton text={item.responseText} label="Copy response" /> <CopyButton text={item.responseBody} label="Copy body" /></h4>
-          <div data-testid={`wire-${item.key}-response`}><Json value={collapse(item.responseText)} label={`Response ${item.n}`} hot={WIRE_HOT} /></div>
+          <div data-testid={`wire-${item.key}-response`}><Json value={collapse(item.responseText)} label={`Response ${item.n}`} hot={WIRE_HOT} decode={false} /></div>
         </div>
       </div>
       {decode && <DecodedTokens tokens={tokens} jwks={jwks} />}
