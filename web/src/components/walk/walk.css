@@ -16,8 +16,9 @@
 .walk .step { animation: walkin 0.45s ease both; }
 @keyframes walkin { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .walk .step { animation: none; } .walk .rail i { transition: none; } .walkbar .btn { transition: none; } }
-.walk .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1.5rem; margin-top: 1.5rem; align-items: start; }
-.walk .four { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: 0.9rem; }
+.walk .two { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; align-items: start; }
+.walk .four { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+@media (max-width: 900px) { .walk .two, .walk .four { grid-template-columns: 1fr; } }
 .walk .card { background: var(--th-bg-card); border: 1px solid var(--th-border); border-radius: 1rem; padding: 1.25rem; min-width: 0; }
 .walk .card--wide { margin-top: 1.5rem; }
 .walk .card--small { padding: 1rem; }
