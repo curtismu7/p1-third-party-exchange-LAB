@@ -2,7 +2,6 @@ import { describe, expect, it, beforeEach, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App, { BANNER_UNKNOWN, TABS } from "./App";
-import { labelOffsets } from "./components/PatternDiagram";
 import { diagramQuery } from "./components/DiagramTab";
 import { fromStudio } from "./studio";
 import { visible } from "./safeText";
@@ -204,9 +203,15 @@ describe("diagram tab", () => {
     const q = new URLSearchParams(diagramQuery({ vendorId: "okta", tokenState: "expired", assigned: false, settings: { expRequired: true, iatRequired: false, nbfRequired: true, audiences: "a b", clockSkew: 30, maxFutureValidity: 3600 } }, "health"));
     expect(Object.fromEntries(q)).toEqual({ vendorId: "okta", tokenState: "expired", assigned: "false", audiences: "a b", vertical: "health", expRequired: "true", iatRequired: "false", nbfRequired: "true", clockSkew: "30", maxFutureValidity: "3600" });
   });
-  it("nudges the two labels of a back-and-forth pair in opposite directions and leaves the rest alone", () => {
-    expect(labelOffsets([{ from: "a", to: "b" }, { from: "b", to: "a" }, { from: "a", to: "c" }])).toEqual([-16, 16, 0]);
-    expect(labelOffsets([])).toEqual([]);
+  it("each arrow has a label item; a reply and a second request on one pair still get their own label, placed by the kit", async () => {
+    const { render } = await import("@testing-library/react");
+    const PatternDiagram = (await import("./components/PatternDiagram")).default;
+    const pattern = fromStudio(DOC);
+    const { container, unmount } = render(<PatternDiagram pattern={pattern} />);
+    await waitFor(() => expect(document.querySelectorAll(".react-flow__node").length).toBe(pattern.nodes.length));
+    const labels = [...container.querySelectorAll(".dk-label")].map((l) => l.textContent);
+    pattern.steps.forEach((s, i) => expect(labels).toContain(`${i + 1}. ${s.label}`));
+    unmount();
   });
 });
 
