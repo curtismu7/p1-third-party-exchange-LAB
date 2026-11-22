@@ -77,6 +77,15 @@ Port range 5200-5249 (default 5200). `GET /api/health` answers `demo-health/1`.
 
 State is per workspace: send `X-Workspace` (default `default`, `^[a-z0-9-]{1,40}$`, anything else is a 400); the store is bounded (500 workspaces, 1 hour, 20 runs each).
 
+## Postman collection
+
+`postman/p1-third-party-exchange-lab.postman_collection.json` drives the mock exchange surface without the UI: the vendor catalog and evidence, the comparison table, an exchange run with the PingFederate client-credentials token profile, the wire trace, the setup guide, run history and reset, plus the unknown-vendor negative. It needs no environment — everything runs in-process against a labelled mock. Send `X-Workspace` for scratch state.
+
+```
+node ../../shared/postman/generator.mjs --spec postman/spec.json            # regenerate (never hand-edit the output)
+npx newman run postman/p1-third-party-exchange-lab.postman_collection.json
+```
+
 ## Real exchange tabs and inline token decoding
 
 - **Real exchange (your browser)** (all builds, hosted too): the visitor's browser sends one real RFC 8693 request straight to their own PingOne token endpoint (strictly validated: https, an auth host of the six regions, path `/<uuid>/as/token`). Nothing passes through this server (a Playwright test records every app-origin request during a send and asserts none carries the secret or the tokens). The secret lives only in React state; Reset and leaving the tab clear it. Authorization is redacted in the view and in Copy curl unless you tick "show" / "include the secret". The server sets no Content-Security-Policy, so there is no `connect-src` to widen.
