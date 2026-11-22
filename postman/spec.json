@@ -1,0 +1,44 @@
+{
+  "name": "P1 Third-Party Exchange LAB",
+  "slug": "p1-third-party-exchange-lab",
+  "description": "API collection for P1 Third-Party Exchange LAB: PingOne token exchange with third-party-signed JWTs. Run the exchange with each vendor's token profile (PingFederate, PingOne, Okta, Auth0, RFC 9068...), read the vendor comparison table and the wire/setup guides. Everything runs in-process against a labelled mock; the lab has no live mode.",
+  "baseUrl": "http://localhost:5200",
+  "env": {},
+  "folders": [
+    {
+      "name": "Sanity (mock, labelled)",
+      "description": "Health, mode info (always mock), the vendor catalog with its evidence, and the comparison table.",
+      "requests": [
+        { "name": "Health", "method": "GET", "path": "/api/health",
+          "tests": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().state).to.eql('ready');"] },
+        { "name": "Info (mode is mock by design)", "method": "GET", "path": "/api/info",
+          "tests": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().mode).to.eql('mock');", "pm.expect(pm.response.json().simulated).to.eql(true);"] },
+        { "name": "Vendors and evidence", "method": "GET", "path": "/api/vendors",
+          "tests": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().vendors.length).to.be.above(0);"] },
+        { "name": "Vendor comparison table", "method": "GET", "path": "/api/compare",
+          "tests": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().columns.length).to.be.above(0);"] }
+      ]
+    },
+    {
+      "name": "Exchange runs",
+      "description": "One token exchange per request, with the vendor's token profile minted in-process. vendorId comes from /api/vendors (pf-cc, pf-oidc, p1, okta, auth0, rfc9068...).",
+      "requests": [
+        { "name": "Exchange an unknown vendor (negative)", "method": "POST", "path": "/api/exchange",
+          "body": { "vendorId": "nope" },
+          "tests": ["pm.expect(pm.response.code).to.eql(400);", "pm.expect(pm.response.json().error).to.eql('unknown_vendor');"] },
+        { "name": "Exchange a PingFederate client-credentials JWT", "method": "POST", "path": "/api/exchange",
+          "body": { "vendorId": "pf-cc" },
+          "tests": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json().ok).to.eql(true);", "pm.expect(pm.response.json().checks).to.be.an('array');"] },
+        { "name": "Wire trace of the last run", "method": "GET", "path": "/api/wire",
+          "tests": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json()).to.have.property('runId');"] },
+        { "name": "Setup guide", "method": "GET", "path": "/api/setup",
+          "tests": ["pm.response.to.have.status(200);", "pm.expect(pm.response.json()).to.have.property('markdown');"] },
+        { "name": "Run history", "method": "GET", "path": "/api/runs",
+          "tests": ["pm.response.to.have.status(200);"] },
+        { "name": "Reset", "method": "POST", "path": "/api/reset",
+          "body": {},
+          "tests": ["pm.response.to.have.status(200);"] }
+      ]
+    }
+  ]
+}
