@@ -3,7 +3,7 @@
     "name": "P1 Third-Party Exchange LAB",
     "description": "API collection for P1 Third-Party Exchange LAB: PingOne token exchange with third-party-signed JWTs. Run the exchange with each vendor's token profile (PingFederate, PingOne, Okta, Auth0, RFC 9068...), read the vendor comparison table and the wire/setup guides. Everything runs in-process against a labelled mock; the lab has no live mode.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_postman_id": "3fa316a6-0447-430e-b291-f7e00381de72"
+    "_postman_id": "postman-p1-third-party-exchange-lab"
   },
   "item": [
     {
@@ -18,9 +18,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "/* Assertions for this request */",
-                  "pm.response.to.have.status(200);",
-                  "pm.expect(pm.response.json().state).to.eql('ready');"
+                  "pm.test(\"Health\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().state).to.eql('ready');",
+                  "});"
                 ]
               }
             }
@@ -50,10 +51,11 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "/* Assertions for this request */",
-                  "pm.response.to.have.status(200);",
-                  "pm.expect(pm.response.json().mode).to.eql('mock');",
-                  "pm.expect(pm.response.json().simulated).to.eql(true);"
+                  "pm.test(\"Info (mode is mock by design)\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().mode).to.eql('mock');",
+                  "  pm.expect(pm.response.json().simulated).to.eql(true);",
+                  "});"
                 ]
               }
             }
@@ -83,9 +85,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "/* Assertions for this request */",
-                  "pm.response.to.have.status(200);",
-                  "pm.expect(pm.response.json().vendors.length).to.be.above(0);"
+                  "pm.test(\"Vendors and evidence\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().vendors.length).to.be.above(0);",
+                  "});"
                 ]
               }
             }
@@ -115,9 +118,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "/* Assertions for this request */",
-                  "pm.response.to.have.status(200);",
-                  "pm.expect(pm.response.json().columns.length).to.be.above(0);"
+                  "pm.test(\"Vendor comparison table\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().columns.length).to.be.above(0);",
+                  "});"
                 ]
               }
             }
@@ -153,9 +157,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "/* Assertions for this request */",
-                  "pm.expect(pm.response.code).to.eql(400);",
-                  "pm.expect(pm.response.json().error).to.eql('unknown_vendor');"
+                  "pm.test(\"Exchange an unknown vendor (negative)\", function () {",
+                  "  pm.expect(pm.response.code).to.eql(400);",
+                  "  pm.expect(pm.response.json().error).to.eql('unknown_vendor');",
+                  "});"
                 ]
               }
             }
@@ -194,10 +199,11 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "/* Assertions for this request */",
-                  "pm.response.to.have.status(200);",
-                  "pm.expect(pm.response.json().ok).to.eql(true);",
-                  "pm.expect(pm.response.json().checks).to.be.an('array');"
+                  "pm.test(\"Exchange a PingFederate client-credentials JWT\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().ok).to.eql(true);",
+                  "  pm.expect(pm.response.json().checks).to.be.an('array');",
+                  "});"
                 ]
               }
             }
@@ -236,9 +242,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "/* Assertions for this request */",
-                  "pm.response.to.have.status(200);",
-                  "pm.expect(pm.response.json()).to.have.property('runId');"
+                  "pm.test(\"Wire trace of the last run\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json()).to.have.property('runId');",
+                  "});"
                 ]
               }
             }
@@ -268,9 +275,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "/* Assertions for this request */",
-                  "pm.response.to.have.status(200);",
-                  "pm.expect(pm.response.json()).to.have.property('markdown');"
+                  "pm.test(\"Setup guide\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json()).to.have.property('markdown');",
+                  "});"
                 ]
               }
             }
@@ -300,8 +308,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "/* Assertions for this request */",
-                  "pm.response.to.have.status(200);"
+                  "pm.test(\"Run history\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
                 ]
               }
             }
@@ -331,8 +340,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "/* Assertions for this request */",
-                  "pm.response.to.have.status(200);"
+                  "pm.test(\"Reset\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
                 ]
               }
             }

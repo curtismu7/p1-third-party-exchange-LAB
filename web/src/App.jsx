@@ -202,6 +202,7 @@ function AppInner() {
         <span className="shell-right">
           <span className="mode-toggle" style={{ display: "contents" }}>
             <TopMenu
+          postman={{ repo: "curtismu7/p1-third-party-exchange-LAB", slug: "p1-third-party-exchange-lab" }}
             mode={{ value: info?.source === "real" ? "real" : "mock", onChange: selectMode, realAvailable: info ? info.realAvailable === true : null, realHint: info && info.realAvailable !== true ? (info.live?.reasons || []).join("; ") || undefined : undefined }}
             vertical={{ value: vertical, onChange: setVertical, options: config ? config.verticals : ["retail"] }}
             theme={{ value: theme, onChange: pickTheme }}
