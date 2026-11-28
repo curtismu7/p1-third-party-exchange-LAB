@@ -17,7 +17,7 @@ const VENDORS = [
 ];
 const CONFIG = {
   title: "t", intro: "intro text", banner: "SIMULATED: a mock of PingOne token exchange", hosted: false, simulated: true, tokenLabel: "MOCK-ISSUED teaching tokens",
-  evidence: EVIDENCE, vendors: VENDORS, verticals: ["retail", "health"], cast: { castApp: "orders-app" },
+  evidence: EVIDENCE, vendors: VENDORS, verticals: ["airlines", "retail", "health"], cast: { castApp: "orders-app" },
   tokenStates: [{ id: "valid", label: "Valid" }, { id: "expired", label: "Expired" }],
   defaults: { expRequired: true, iatRequired: false, nbfRequired: false, audiences: "", clockSkew: 0, maxFutureValidity: 0, assigned: true },
   steps: [{ n: 1, title: "Define a trusted issuer", body: "Name and issuer.", where: "/trustedIssuers", evidence: "guide" }],
@@ -89,6 +89,12 @@ describe("shell", () => {
     expect(screen.getByTestId("mode-select")).toHaveValue("mock");
     const ex = calls.find((c) => c.url === "/api/exchange");
     expect(ex.opts.headers["x-workspace"]).toMatch(/^[a-z0-9-]{1,40}$/);
+  });
+  it("starts on the airlines vertical: the first vendors request and the selector both say airlines", async () => {
+    await ready();
+    const first = calls.find((c) => c.url.startsWith("/api/vendors"));
+    expect(new URLSearchParams(first.url.split("?")[1]).get("vertical")).toBe("airlines");
+    expect(screen.getByTestId("vertical-select")).toHaveValue("airlines");
   });
   it("has seven tabs including the wire and the setup guide", () => {
     expect(TABS.map((t) => t.label)).toEqual(["Exchange lab", "Wire", "Diagram", "Claims compared", "Setup guide", "Admin and limits", "Talk track"]);
