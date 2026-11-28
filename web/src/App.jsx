@@ -10,6 +10,7 @@ import { DecodeProvider } from "./components/DecodeContext";
 import LiveTab from "./components/LiveTab";
 import RealBrowserTab from "./components/RealBrowserTab";
 import RealLocalTab from "./components/RealLocalTab";
+import ModeModal from "./mode-modal/ModeModal.jsx";
 import GuidedWalk from "./components/walk/GuidedWalk";
 import { STEPS } from "./components/walk/steps";
 import { REFIT_EVENT } from "./hooks/useFitOnResize";
@@ -38,12 +39,17 @@ export const REAL_LOCAL_TAB = { id: "reallocal", label: "Real exchange (local)" 
 const SAY = { exchange: ["trust", "result"], wire: ["send"], diagram: ["send"], compare: ["compare"], setup: ["idea"], admin: ["know"], realbrowser: ["know"], reallocal: ["know"], live: ["know"] };
 // Which talk-track beat presenter mode shows on each step of the walk (the talk track has one beat per step).
 const WALK_SAY = STEPS.map((x) => x.id);
-// The banner is never blank and never claims "not hosted" before it knows: until /api/info or /api/vendors answers (or if both fail)
-// it says both, honestly.
+// The Real-or-mock modal's lines, one per state the old banner had (its wording kept). The modal never claims "not hosted" before it knows: until
+// /api/info and /api/vendors answer (or if both fail) it says both, honestly. The mode stays MOCK in every state but Real; the storage key varies per
+// state, so the modal shows again when the state resolves (for example from unknown to hosted).
 const TAIL = "Nothing here calls PingOne, a third-party issuer or any tenant.";
-export const BANNER_UNKNOWN = `SIMULATED / HOSTED SIMULATION: a mock of PingOne token exchange with a third-party actor token. ${TAIL}`;
-const BANNER_LOCAL = `SIMULATED: a mock of PingOne token exchange with a third-party actor token. ${TAIL}`;
-const BANNER_HOSTED = `HOSTED SIMULATION: a mock of PingOne token exchange with a third-party actor token. ${TAIL}`;
+const LIVE_LINE = "SIMULATED except the Live tab. LIVE: this writes to a real PingOne environment (it creates throwaway p1x-live-* objects, uses them, and deletes them again). It is NOT a simulation.";
+export const STATE_LINES = {
+  unknown: `SIMULATED / HOSTED SIMULATION: a mock of PingOne token exchange with a third-party actor token. ${TAIL}`,
+  local: `SIMULATED: a mock of PingOne token exchange with a third-party actor token. ${TAIL}`,
+  hosted: `HOSTED SIMULATION: a mock of PingOne token exchange with a third-party actor token. ${TAIL}`,
+  live: LIVE_LINE,
+};
 const THEME_KEY = "p1tpe.theme";
 const THEMES = [["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]];
 function initialTheme() {
@@ -193,7 +199,9 @@ function AppInner() {
   const advancedTabs = [...TABS, REAL_BROWSER_TAB, ...(liveInfo ? [LIVE_TAB] : []), ...(liveOn ? [REAL_LOCAL_TAB] : [])];
   const tabs = advancedTabs;
   const hosted = config ? !!config.hosted : info ? !!info.hosted : null;
-  const banner = config ? config.banner : hosted === true ? BANNER_HOSTED : hosted === false ? BANNER_LOCAL : BANNER_UNKNOWN;
+  // Hosted wins; otherwise the state is known once /api/info has answered (or failed): live-enabled (the owner-run Live tab is on) or plain local.
+  const modeState = hosted === true ? "hosted" : hosted === false && info !== undefined ? (liveOn ? "live" : "local") : "unknown";
+  const modeLines = { mock: STATE_LINES[modeState], real: LIVE_LINE };
   return (
     <div className={`app${presenter ? " app--presenter" : ""}`}>
       <header className="shell-bar">
@@ -220,7 +228,6 @@ function AppInner() {
         </span>
       </header>
       <main className="page">
-        <p className="banner" role="status" data-testid="banner">{banner}</p>
         <div className="head">
           <div>
             <h1 className="page-title">PingOne token exchange with third-party tokens</h1>
@@ -264,6 +271,7 @@ function AppInner() {
           )}
         </div>
       </main>
+      <ModeModal mode={info?.source === "real" ? "real" : "mock"} lines={modeLines} storageKey={`p1x-mode-${modeState}`} />
     </div>
   );
 }

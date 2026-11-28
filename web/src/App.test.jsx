@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import App, { BANNER_UNKNOWN, TABS } from "./App";
+import App, { STATE_LINES, TABS } from "./App";
 import { diagramQuery } from "./components/DiagramTab";
 import { fromStudio } from "./studio";
 import { visible } from "./safeText";
@@ -83,9 +83,13 @@ beforeEach(() => { override = {}; mockFetch(); window.location.hash = "#exchange
 const ready = async () => { render(<App />); await screen.findByTestId("vendor-okta"); await screen.findByTestId("verdict"); };
 
 describe("shell", () => {
-  it("shows the banner, the mode, and sends X-Workspace on API calls", async () => {
+  it("opens on a MOCK modal that says SIMULATED, shows the mode, and sends X-Workspace on API calls", async () => {
     await ready();
-    expect(screen.getByTestId("banner")).toHaveTextContent(/^SIMULATED/);
+    expect(screen.getByTestId("mode-modal").dataset.mode).toBe("mock");
+    expect(screen.getByTestId("mode-modal")).toHaveTextContent(/MOCK/);
+    expect(screen.getByTestId("mode-modal")).toHaveTextContent(/SIMULATED: a mock of PingOne token exchange with a third-party actor token\. Nothing here calls PingOne, a third-party issuer or any tenant/);
+    expect(screen.queryByTestId("banner")).toBeNull();
+    expect(document.querySelector("main > p.banner")).toBeNull();
     expect(screen.getByTestId("mode-select")).toHaveValue("mock");
     const ex = calls.find((c) => c.url === "/api/exchange");
     expect(ex.opts.headers["x-workspace"]).toMatch(/^[a-z0-9-]{1,40}$/);
@@ -191,7 +195,7 @@ describe("diagram tab", () => {
     const call = calls.find((c) => c.url.startsWith("/api/diagram?"));
     expect(call.url).toContain("vendorId=pf-cc");
     expect(call.url).toContain("nbfRequired=false");
-    expect(screen.getByTestId("banner")).toBeInTheDocument();
+    expect(screen.getByTestId("mode-modal")).toBeInTheDocument();
     expect(screen.getByLabelText(/Step time/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /simulate/i }));
     expect(await screen.findByTestId("pattern-now")).toHaveTextContent("Step 1: Token exchange request");
@@ -230,7 +234,7 @@ describe("wire tab", () => {
     expect(within(tab).getByTestId("wire-exchange")).toBeInTheDocument();
     expect(within(tab).getByTestId("wire-issuer")).toBeInTheDocument();
     expect(within(tab).getByTestId("wire-token-actor-raw").textContent.split(".")).toHaveLength(3);
-    expect(screen.getByTestId("banner")).toBeVisible();
+    expect(screen.getByTestId("mode-modal")).toBeVisible();
     await userEvent.click(screen.getByTestId("decode-input"));
     await userEvent.paste(within(tab).getByTestId("wire-token-actor-raw").textContent);
     expect(screen.getByTestId("decode-out")).toHaveTextContent("okta.example");
@@ -275,58 +279,95 @@ describe("compare, setup and admin tabs", () => {
 });
 
 describe("talk track and presenter mode", () => {
-  it("lists the talk track; presenter mode keeps the banner and shows the say-text; Esc leaves", async () => {
+  it("lists the talk track; presenter mode shows the say-text and the modal stays closed once dismissed; Esc leaves", async () => {
     await ready();
     await userEvent.click(screen.getByRole("tab", { name: "Talk track" }));
     expect(screen.getByTestId("talk-track")).toHaveTextContent("Everything is simulated.");
     await userEvent.click(screen.getByRole("tab", { name: "Exchange lab" }));
     await userEvent.keyboard("p");
     expect(await screen.findByTestId("presenter-say")).toHaveTextContent("Pick Okta.");
-    expect(screen.getByTestId("banner")).toHaveTextContent(/^SIMULATED/);
+    expect(screen.getByTestId("mode-select")).toHaveValue("mock");
     expect(document.querySelector(".app--presenter")).not.toBeNull();
     await userEvent.keyboard("{Escape}");
     expect(document.querySelector(".app--presenter")).toBeNull();
   });
-  it("the hosted build says HOSTED SIMULATION in the banner", async () => {
+  it("the hosted build says HOSTED SIMULATION in the modal", async () => {
     override.vendors = async () => ({ ok: true, status: 200, json: async () => ({ ...CONFIG, banner: "HOSTED SIMULATION: x", hosted: true }) });
     render(<App />);
-    await waitFor(() => expect(screen.getByTestId("banner")).toHaveTextContent(/^HOSTED SIMULATION/));
+    await waitFor(() => expect(screen.getByTestId("mode-modal")).toHaveTextContent(/HOSTED SIMULATION: a mock of PingOne token exchange/));
+    expect(screen.getByTestId("mode-modal").dataset.mode).toBe("mock");
     expect(screen.getByRole("option", { name: "Real" })).toBeDisabled();
   });
 });
 
-describe("banner visibility on every tab, presenter mode and hosted mode", () => {
-  it("is visible (not hidden, not display:none) on every tab and in presenter mode", async () => {
-    await ready();
+describe("the Real-or-mock modal on every tab, in presenter mode, hosted and unknown", () => {
+  it("no simulation paragraph on any tab or in presenter mode; Got it closes the modal for the session and a remount does not bring it back", async () => {
+    const { unmount } = render(<App />);
+    await screen.findByTestId("vendor-okta");
+    await userEvent.click(screen.getByTestId("mode-modal-ok"));
+    expect(screen.queryByTestId("mode-modal")).toBeNull();
     for (const t of TABS) {
       await userEvent.click(screen.getByRole("tab", { name: t.label }));
-      expect(screen.getByTestId("banner")).toBeVisible();
-      expect(screen.getByTestId("banner")).not.toHaveAttribute("hidden");
+      expect(screen.queryByTestId("banner")).toBeNull();
+      expect(document.querySelector("main > p.banner")).toBeNull();
+      expect(screen.queryByTestId("mode-modal")).toBeNull();
     }
     await userEvent.click(screen.getByRole("tab", { name: "Exchange lab" }));
     await userEvent.keyboard("p");
     await screen.findByTestId("presenter-say");
-    expect(screen.getByTestId("banner")).toBeVisible();
+    expect(screen.queryByTestId("mode-modal")).toBeNull();
+    unmount();
+    await ready();
+    expect(screen.queryByTestId("mode-modal")).toBeNull();
+  });
+  it("Escape closes it", async () => {
+    render(<App />);
+    await screen.findByTestId("mode-modal");
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByTestId("mode-modal")).toBeNull();
   });
   it("hosted: shows HOSTED SIMULATION from /api/info even before /api/vendors answers, never plain SIMULATED", async () => {
     override.info = async () => ({ ok: true, status: 200, json: async () => ({ mode: "mock", simulated: true, hosted: true }) });
     override.vendors = () => new Promise(() => {});
     render(<App />);
-    await waitFor(() => expect(screen.getByTestId("banner")).toHaveTextContent(/^HOSTED SIMULATION/));
-    expect(screen.getByTestId("banner")).toBeVisible();
+    await waitFor(() => expect(screen.getByTestId("mode-modal")).toHaveTextContent(/HOSTED SIMULATION: a mock of PingOne token exchange/));
+    expect(screen.getByTestId("mode-modal")).not.toHaveTextContent(/^MOCK\s*SIMULATED:/);
   });
-  it("while nothing has answered, and when both calls fail, the banner says both and stays visible", async () => {
+  it("while nothing has answered, and when both calls fail, the modal says both and reads MOCK", async () => {
     override.info = () => new Promise(() => {});
     override.vendors = () => new Promise(() => {});
     const { unmount } = render(<App />);
-    expect(screen.getByTestId("banner")).toHaveTextContent(BANNER_UNKNOWN);
-    expect(BANNER_UNKNOWN).toMatch(/HOSTED SIMULATION/);
+    expect(screen.getByTestId("mode-modal")).toHaveTextContent(STATE_LINES.unknown);
+    expect(screen.getByTestId("mode-modal").dataset.mode).toBe("mock");
+    expect(STATE_LINES.unknown).toMatch(/HOSTED SIMULATION/);
     unmount();
     override.info = async () => ({ ok: false, status: 500, json: async () => ({}) });
     override.vendors = async () => ({ ok: false, status: 500, json: async () => ({}) });
     render(<App />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not load the app");
-    expect(screen.getByTestId("banner")).toHaveTextContent(BANNER_UNKNOWN);
+    expect(screen.getByTestId("mode-modal")).toHaveTextContent(STATE_LINES.unknown);
+  });
+  it("the owner-run live build (gate passed): the line says SIMULATED except the Live tab and that Live is NOT a simulation; Real reads REAL with the same facts", async () => {
+    override.info = async () => ({ ok: true, status: 200, json: async () => ({ mode: "live", simulated: true, hosted: false, source: "mock", realAvailable: true, live: { requested: true, enabled: true, reasons: [] } }) });
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId("mode-modal")).toHaveTextContent(/SIMULATED except the Live tab\. LIVE: this writes to a real PingOne environment/));
+    expect(screen.getByTestId("mode-modal")).toHaveTextContent(/It is NOT a simulation/);
+    expect(screen.getByTestId("mode-modal").dataset.mode).toBe("mock");
+    cleanup();
+    override.info = async () => ({ ok: true, status: 200, json: async () => ({ mode: "live", simulated: true, hosted: false, source: "real", realAvailable: true, live: { requested: true, enabled: true, reasons: [] } }) });
+    render(<App />);
+    await waitFor(() => expect(screen.getByTestId("mode-modal").dataset.mode).toBe("real"));
+    expect(screen.getByTestId("mode-modal")).toHaveTextContent(/REAL/);
+    expect(screen.getByTestId("mode-modal")).toHaveTextContent(/creates throwaway p1x-live-\* objects, uses them, and deletes them again/);
+  });
+  it("a Real build reads MOCK until /api/info answers, then REAL", async () => {
+    let release;
+    const held = new Promise((r) => { release = r; });
+    override.info = async () => { await held; return { ok: true, status: 200, json: async () => ({ mode: "live", simulated: true, hosted: false, source: "real", realAvailable: true, live: { requested: true, enabled: true, reasons: [] } }) }; };
+    render(<App />);
+    expect((await screen.findByTestId("mode-modal")).dataset.mode).toBe("mock");
+    release();
+    await waitFor(() => expect(screen.getByTestId("mode-modal").dataset.mode).toBe("real"));
   });
 });
 
@@ -353,11 +394,12 @@ describe("links from the content pack: /#vendor-<id>", () => {
 });
 
 describe("accessibility structure and display safety", () => {
-  it("has one main landmark, the banner as the first content in main, one page h1, and a tabpanel that is not the main", async () => {
+  it("has one main landmark, no simulation paragraph in it, one page h1, and a tabpanel that is not the main", async () => {
     await ready();
     expect(screen.getAllByRole("main")).toHaveLength(1);
     const main = screen.getByRole("main");
-    expect(main).toContainElement(screen.getByTestId("banner"));
+    expect(main.querySelector("p.banner")).toBeNull();
+    expect(main).not.toContainElement(screen.getByTestId("mode-modal"));
     expect(main.querySelector(".page-title")).toBeTruthy();
     expect(document.querySelectorAll("h1")).toHaveLength(1);
     expect(screen.getByRole("tabpanel")).not.toBe(main);
@@ -378,7 +420,7 @@ describe("live tab (owner-run)", () => {
     await ready();
     await userEvent.click(await screen.findByRole("tab", { name: "Live" }));
     expect(await screen.findByTestId("live-refused")).toHaveTextContent("P1TPX_ALLOW_LIVE is not 1");
-    expect(screen.getByTestId("banner")).toBeVisible();
+    expect(screen.getByTestId("mode-modal")).toBeVisible();
     expect(calls.some((c) => c.url.startsWith("/api/live"))).toBe(false);
   });
   it("enabled: LIVE banner, write-only secret, the Run button needs the exact environment id typed, results show match and mismatch with a pasteable list", async () => {
@@ -404,7 +446,7 @@ describe("live tab (owner-run)", () => {
     expect(screen.getByTestId("badge-nbf-required")).toHaveTextContent("MISMATCH");
     expect(screen.getByTestId("live-mismatches")).toHaveValue("nbf-required | error_description | mock predicted: Missing nbf claim | live: Other text");
     expect(screen.getByTestId("live-cleanup-result")).toHaveTextContent("nothing named p1x-live remains");
-    expect(screen.getByTestId("banner")).toBeVisible();
+    expect(screen.getByTestId("live-banner")).toBeVisible();
     await userEvent.keyboard("{Escape}");
   });
 });
@@ -462,6 +504,6 @@ describe("wire tab recovers from a run the server no longer has", () => {
     window.location.hash = "#wire";
     render(<App />);
     expect(await screen.findByTestId("wire-tab")).toBeInTheDocument();
-    expect(screen.getByTestId("banner")).toHaveTextContent(/^HOSTED SIMULATION/);
+    expect(screen.getByTestId("mode-modal")).toHaveTextContent(/HOSTED SIMULATION: a mock of PingOne token exchange/);
   });
 });
