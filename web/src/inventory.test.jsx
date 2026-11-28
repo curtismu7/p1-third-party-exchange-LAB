@@ -73,7 +73,7 @@ export const INVENTORY = [
   ["issued token raw and decoded", "ok", "walk", (r) => where(r, "issued access token")],
   ["hops with W3C traceparent", "ok", "walk", (r) => has(r, "Hops (W3C traceparent)") && tid(r, "hops")],
   ["diagram canvas", "ok", "walk", (r) => tid(r, "pattern-canvas")],
-  ["diagram nodes", "ok", "walk", (r) => has(r, "Application (orders-app)") && has(r, "PingOne token endpoint")],
+  ["diagram nodes", "ok", "walk", (r) => has(r, "Application (booking-app)") && has(r, "PingOne token endpoint")],
   ["diagram Simulate", "ok", "walk", (r) => [...r.querySelectorAll("button")].some((b) => /simulate/i.test(b.textContent))],
   ["diagram speed control", "ok", "walk", (r) => Boolean(q(r, '[aria-label*="Step time"], [data-testid*="step-time"], .dstep-time, select[aria-label*="speed" i]')) || has(r, "Step time")],
   ["diagram Reset", "ok", "walk", (r) => tid(r, "pattern-reset")],

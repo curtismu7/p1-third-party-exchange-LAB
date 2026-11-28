@@ -65,7 +65,7 @@ Port range 5200-5249 (default 5200). `GET /api/health` answers `demo-health/1`.
 
 | Endpoint | |
 | --- | --- |
-| `GET /api/vendors?vertical=retail\|health\|finance` | banner, issuers, evidence labels, defaults, steps, what is not shown, talk track |
+| `GET /api/vendors?vertical=airlines\|retail\|health\|finance` | banner, issuers, evidence labels, defaults, steps, what is not shown, talk track |
 | `POST /api/exchange` | `{vendorId, tokenState?, settings?{expRequired, iatRequired, nbfRequired, audiences, clockSkew, maxFutureValidity}, assigned?}`: checks, subject / actor / issued claims, mapping results, real RS256 MOCK JWTs, `wire` and `setup` (full HTTP calls), `error` on refusal, `hops` and `traceId`; a valid incoming `traceparent` continues its trace |
 | `GET /api/wire?runId=` | the `wire` (runtime) and `setup` (admin) calls of this workspace's latest exchange, as `POST /api/exchange` returned them; each item: n, id, key, label, phase, method, url, requestHeaders, requestBody, curl, status, statusText, responseHeaders, responseBody(+Pretty), requestText, responseText, notes, evidence |
 | `GET /api/compare` | the claims comparison sheet |
@@ -107,7 +107,7 @@ npx newman run postman/p1-third-party-exchange-lab.postman_collection.json
 
 ## Branding
 
-Copy `customer.config.example.json` to `customer.config.json` (git-ignored, read on every request) to set brand, app, resource and host. Three built-in vertical packs (retail, health, finance) supply the defaults.
+Copy `customer.config.example.json` to `customer.config.json` (git-ignored, read on every request) to set brand, app, resource and host. Four built-in vertical packs (airlines, retail, health, finance) supply the defaults; the default is `airlines` (AirGuard Airlines, a fictional airline, app `booking-app`, resource `booking`, host `api.airguard.example`).
 
 ## Sources and status of claims (rule 2)
 

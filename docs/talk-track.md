@@ -4,7 +4,7 @@
 
 ## The idea
 
-Everything here is simulated: the tokens, the checks and the issued token are invented by this app. Northwind Retail is a made-up customer. PingOne token exchange used to accept only tokens from the same environment. Now orders-app can present a PingOne user token as the subject and a JWT from another issuer as the actor, with actor_token_type urn:ietf:params:oauth:token-type:jwt. The capability is behind a feature flag and the guide gives no flag name, so check with Ping that it is on in your environment. Four things to set up: trust, assign, map, send.
+Everything here is simulated: the tokens, the checks and the issued token are invented by this app. AirGuard Airlines is a made-up customer. PingOne token exchange used to accept only tokens from the same environment. Now booking-app can present a PingOne user token as the subject and a JWT from another issuer as the actor, with actor_token_type urn:ietf:params:oauth:token-type:jwt. The capability is behind a feature flag and the guide gives no flag name, so check with Ping that it is on in your environment. Four things to set up: trust, assign, map, send.
 
 ## Pick an issuer
 
@@ -16,7 +16,7 @@ The admin defines a trusted issuer (its inline JWKS, which claims must be presen
 
 ## Send it
 
-One request. Walk the sequence: the app gets a PingOne token, gets the third-party token, sends both, PingOne verifies the actor signature against the trusted issuer keys and runs its checks, then reads the attribute mapping on the custom resource address. Every call is shown whole on the Wire tab, with a curl for each. The request shape was measured live; the order PingOne evaluates checks in is UNVERIFIED.
+One request. Walk the sequence: the app gets a PingOne token, gets the third-party token, sends both, PingOne verifies the actor signature against the trusted issuer keys and runs its checks, then reads the attribute mapping on the custom resource booking. Every call is shown whole on the Wire tab, with a curl for each. The request shape was measured live; the order PingOne evaluates checks in is UNVERIFIED.
 
 ## Read the result
 
