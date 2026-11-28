@@ -18,7 +18,7 @@ const runOf = (body, cast = DEFAULT_CAST) => runExchange(normalizeInput(body), {
 
 test('every {{token}} in the data, the diagrams and the guide is defined by every vertical or by a run (fails on an undefined token)', () => {
   for (const [name, cast] of Object.entries(VERTICALS)) assert.deepEqual(unfilled(all(), { ...cast, ...dyn }), [], name);
-  assert.equal(Object.keys(VERTICALS).length, 3);
+  assert.deepEqual(Object.keys(VERTICALS).sort(), ['airlines', 'finance', 'health', 'retail']);
 });
 
 test('the check itself catches an undefined token and leaves it visible', () => {

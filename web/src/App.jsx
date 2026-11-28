@@ -66,7 +66,7 @@ const hashParts = () => {
 };
 
 function AppInner() {
-  const [vertical, setVertical] = useState("retail");
+  const [vertical, setVertical] = useState("airlines");
   const [config, setConfig] = useState(null);
   const [info, setInfo] = useState(undefined); // undefined = loading, null = failed
   const [error, setError] = useState(null);
@@ -204,7 +204,7 @@ function AppInner() {
             <TopMenu
           postman={{ repo: "curtismu7/p1-third-party-exchange-LAB", slug: "p1-third-party-exchange-lab" }}
             mode={{ value: info?.source === "real" ? "real" : "mock", onChange: selectMode, realAvailable: info ? info.realAvailable === true : null, realHint: info && info.realAvailable !== true ? (info.live?.reasons || []).join("; ") || undefined : undefined }}
-            vertical={{ value: vertical, onChange: setVertical, options: config ? config.verticals : ["retail"] }}
+            vertical={{ value: vertical, onChange: setVertical, options: config ? config.verticals : ["airlines"] }}
             theme={{ value: theme, onChange: pickTheme }}
             fontSize={{ value: fontStep, onChange: setFontStep }}
             present={{ active: presenter, onToggle: () => setPresenter((v) => !v), label: "Presenter (P)" }}

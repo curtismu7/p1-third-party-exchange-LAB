@@ -92,11 +92,14 @@ test('GET /api/vendors returns the issuers, the labels, the defaults and the fil
     assert.deepEqual(Object.keys(j.evidence).sort(), ['derived', 'guide', 'measured', 'sample', 'unverified']);
     assert.match(j.tokenLabel, /MOCK-ISSUED/);
     assert.deepEqual(j.defaults, { expRequired: true, iatRequired: false, nbfRequired: false, audiences: '', clockSkew: 0, maxFutureValidity: 0, assigned: true });
-    assert.equal(j.cast.castApp, 'orders-app');
+    assert.equal(j.cast.castApp, 'booking-app');
+    assert.equal(j.cast.castBrand, 'AirGuard Airlines');
     j = await (await fetch(`${url}/api/vendors?vertical=finance`)).json();
     assert.equal(j.cast.castApp, 'payments-app');
     j = await (await fetch(`${url}/api/vendors?vertical=__proto__`)).json();
-    assert.equal(j.cast.castApp, 'orders-app', 'unknown vertical keeps the default');
+    assert.equal(j.cast.castApp, 'booking-app', 'unknown vertical keeps the default');
+    j = await (await fetch(`${url}/api/vendors?vertical=retail`)).json();
+    assert.equal(j.cast.castApp, 'orders-app', 'the retail pack is still selectable');
     fs.writeFileSync(file, JSON.stringify({ cast: { app: 'custom-app' } }));
     j = await (await fetch(`${url}/api/vendors`)).json();
     assert.equal(j.cast.castApp, 'custom-app');
@@ -115,7 +118,7 @@ test('POST /api/exchange: the default exchange succeeds, with checks, request, t
     assert.ok(j.checks.every((c) => c.ok));
     assert.match(j.request, /actor_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Ajwt/);
     assert.deepEqual(j.issued.act, { sub: 'cc_client' });
-    assert.equal(j.issued.aud[0], 'https://api.northwind.example/address');
+    assert.equal(j.issued.aud[0], 'https://api.airguard.example/booking');
     assert.equal(j.subject.sub, '22222222-2222-2222-2222-222222222222');
     assert.equal(j.actor.iss, 'https://pf.vendor.example:9031');
     assert.match(j.jwtLabel, /MOCK/);
@@ -250,7 +253,7 @@ test('GET /api/diagram serves a diagram-studio/1 document for the run: accepted 
     assert.equal(ok.steps.length, 9);
     assert.ok(ok.steps.every((s) => s.why && s.why.length > 0), 'payload per step');
     assert.ok(ok.nodes.some((n) => n.label === 'Okta'));
-    assert.ok(JSON.stringify(ok).includes('orders-app'));
+    assert.ok(JSON.stringify(ok).includes('booking-app'));
     const bad = await get('?vendorId=okta&nbfRequired=true');
     assert.equal(bad.id, 'exchange-refused');
     assert.equal(bad.steps.length, 7);

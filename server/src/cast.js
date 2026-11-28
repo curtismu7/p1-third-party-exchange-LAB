@@ -8,11 +8,12 @@ const MAX_CAST = 40;
 const ID = /^[a-z0-9-]{1,40}$/;
 
 export const VERTICALS = {
+  airlines: { castBrand: 'AirGuard Airlines', castApp: 'booking-app', castResource: 'booking', castHost: 'airguard' },
   retail: { castBrand: 'Northwind Retail', castApp: 'orders-app', castResource: 'address', castHost: 'northwind' },
   health: { castBrand: 'Contoso Health', castApp: 'claims-app', castResource: 'members', castHost: 'contoso' },
   finance: { castBrand: 'Fabrikam Bank', castApp: 'payments-app', castResource: 'accounts', castHost: 'fabrikam' },
 };
-export const DEFAULT_VERTICAL = 'retail';
+export const DEFAULT_VERTICAL = 'airlines';
 export const DEFAULT_CAST = VERTICALS[DEFAULT_VERTICAL];
 
 export const unfilled = (text, cast) => [...String(text).matchAll(TOKEN)].map((m) => m[1]).filter((k) => !Object.hasOwn(cast, k));
