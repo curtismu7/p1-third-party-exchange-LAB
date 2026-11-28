@@ -1,2 +1,4 @@
+# vendored byte for byte from curtismu7/AI-DEMO-Standalone shared/top-menu at cd96c506 (origin/main); re-vendor, do not edit. ReleaseNotes.jsx is pinned too: TopMenu imports it.
+16e99c0ec250aea05c05aa2a2fc729101686ac2b2b1f3c2ac837130fde4c459d  ReleaseNotes.jsx
 80c2796c5b62ee3989cf218077b455e21a7e88d04dc66fd49d034249ef34a9da  TopMenu.jsx
 ebddfcadc0e17bfebc981317a2720ddfe319818e7af1e268dae77826c5940651  top-menu.css

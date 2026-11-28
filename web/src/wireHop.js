@@ -11,3 +11,16 @@ export function wireHopText(run, hop) {
 // wireHopText joins calls, and a call's request and response, with a blank line: one string per HTTP message, so the JsonPane
 // (which keeps a message's headers as text and gives its JSON body a Form | JSON pane) gets one transcript at a time.
 export const wireMessages = (text) => String(text).split(/\n\n(?=(?:[A-Z]{3,7} \S+ HTTP\/|HTTP\/\d))/);
+
+// The kit's call data for one diagram step's hop: the resolved wire text (wireHopText) split into its
+// messages — request first, response second — with the run's outcome as the verdict. A step whose hop
+// resolved to nothing (the run has no such call, or no run) gets no call: the pop-up simply shows none.
+export function wireCall(text, title, verdict) {
+  const msgs = wireMessages(text ?? "");
+  if (!msgs.length) return null;
+  return {
+    title, fact: title, verdict,
+    request: msgs[0] ?? "",
+    response: msgs[1] ?? msgs[0] ?? "",
+  };
+}
