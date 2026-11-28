@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import PatternDiagram from "./PatternDiagram";
 import { getJson } from "../api";
 import { fromStudio } from "../studio";
-import { wireHopText } from "../wireHop";
+import { wireHopText, wireCall } from "../wireHop";
 
 export function diagramQuery(sel, vertical) {
   const q = new URLSearchParams({
@@ -24,6 +24,12 @@ export default function DiagramTab({ sel, vertical, resetSignal, run }) {
   }, [query]);
   if (error) return <p className="field-error" role="alert">Could not load the diagram ({error}).</p>;
   if (!doc) return <p className="muted">Loading...</p>;
+  // Each step's hop (the kit's call data): the resolved wire text split into request/response, the run's outcome as the verdict.
+  const verdict = run ? (run.ok ? "ok" : "deny") : "ok";
   const pattern = fromStudio(doc, (hop) => wireHopText(run, hop));
+  pattern.steps = pattern.steps.map((st, i) => {
+    const text = wireHopText(run, doc.steps[i]?.hop);
+    return { ...st, hop: text ? wireCall(text, st.title, verdict) : null };
+  });
   return <PatternDiagram key={query} pattern={pattern} resetSignal={resetSignal} />;
 }

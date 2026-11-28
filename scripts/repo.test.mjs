@@ -61,7 +61,7 @@ test('README declares its tier, and no copy says "door"', () => {
 });
 
 test('no shipped file contains a real host (only .example, .invalid, loopback and the RFC editor) or a non-placeholder UUID', () => {
-  const allowed = new Set(['www.rfc-editor.org']);
+  const allowed = new Set(['www.rfc-editor.org', 'raw.githubusercontent.com']); // raw.githubusercontent.com: the TopMenu postman button downloads the lab's collection from the lab repo on GitHub (the shared TopMenu, vendored)
   const hits = [];
   const shipped = (x) => !x.startsWith('web/src/diagram-kit/') && (['README.md', 'docs/setup.md', 'docs/talk-track.md', 'docs/shelf-entry.json', 'content-pack.json', 'customer.config.example.json', 'server/src/exchangeData.js'].includes(x) || x.startsWith('server/diagrams/') || (x.startsWith('web/src/') && /\.jsx?$/.test(x) && !/\.test\./.test(x)) || (x.startsWith('k8s/') && x.endsWith('.yaml'))); // web/src/diagram-kit is the vendored shared kit, pinned byte for byte by web/src/diagram-kit/diagram-kit.sha256
   for (const f of tracked().filter(shipped)) {
