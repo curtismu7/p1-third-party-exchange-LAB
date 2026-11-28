@@ -1,5 +1,5 @@
 # MOCK-ONLY hosted build of p1-third-party-exchange for the SE cluster (rule 18). Same image as the standalone, MODE=mock,
-# P1TPX_HOSTED=1 (the banner then says HOSTED SIMULATION). No secrets, no tenant ids, no volumes with data.
+# P1TPX_HOSTED=1 (the opening modal then says HOSTED SIMULATION). No secrets, no tenant ids, no volumes with data.
 # Placeholders (__IMAGE__, __SE_HOST__, __INGRESS_CLASS__, __CLUSTER_ISSUER__) are filled by k8s/deploy.sh; nothing here names a real host or registry path.
 apiVersion: apps/v1
 kind: Deployment

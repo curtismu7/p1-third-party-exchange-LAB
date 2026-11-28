@@ -61,7 +61,7 @@ describe("Guided walk", () => {
     for (const n of ["Exchange lab", "Diagram", "Claims compared", "Setup guide", "Admin and limits", "Talk track", "Real exchange (your browser)"]) expect(screen.getByRole("tab", { name: n })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Live" })).toBeNull();
     expect(screen.queryByRole("tab", { name: "Real exchange (local)" })).toBeNull();
-    expect(screen.getByTestId("banner")).toBeVisible();
+    expect(screen.getByTestId("mode-modal")).toBeVisible();
   });
   it("has seven steps with the right kickers, reachable with Next and Back; Next becomes Start over on the last step", async () => {
     await ready();
@@ -164,14 +164,14 @@ describe("Guided walk", () => {
     fireEvent.keyDown(document.body, { key: "ArrowLeft", ctrlKey: true });
     expect(screen.getByTestId("kicker")).toHaveTextContent("Step 3 of 7");
   });
-  it("presenter mode keeps working and shows the walk with its talk-track beat; the banner stays", async () => {
+  it("presenter mode keeps working and shows the walk with its talk-track beat; the modal does not break it", async () => {
     await ready();
     await userEvent.keyboard("p");
     expect(await screen.findByTestId("presenter-say")).toHaveTextContent("Say idea");
     expect(screen.getByTestId("walk")).toBeInTheDocument();
     await userEvent.click(screen.getByTestId("walk-next"));
     expect(screen.getByTestId("presenter-say")).toHaveTextContent("Say issuer");
-    expect(screen.getByTestId("banner")).toBeVisible();
+    expect(screen.getByTestId("mode-modal")).toBeVisible();
     await userEvent.keyboard("{Escape}");
     expect(document.querySelector(".app--presenter")).toBeNull();
   });

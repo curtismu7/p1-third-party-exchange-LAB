@@ -27,7 +27,7 @@ html { font-size: var(--fs, 16px); } /* the TopMenu text-size control */
 .track__now p { margin: 0; font-size: var(--font-size-base); line-height: 1.5; }
 .keys { color: var(--th-text-muted); font-size: var(--font-size-2xs); }
 .app-error { padding: 16px; color: var(--danger-text); }
-/* Presenter mode: less chrome, bigger talk track. The simulation banner stays. */
+/* Presenter mode: less chrome, bigger talk track. The header badge stays. */
 .app--presenter .track__now h2, .track__now h3 { font-size: var(--font-size-xl); }
 .app--presenter .track__now p { font-size: var(--font-size-lg); line-height: 1.55; }
 .app--presenter .head h1 { font-size: var(--font-size-lg); }

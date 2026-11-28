@@ -39,7 +39,7 @@ const where = (root, w) => Boolean(q(root, `[data-testid="decoded-token"][data-w
 const vendor0 = D.VENDORS[0];
 // scenario "ok": the default run. scenario "refused": token state Expired. `where`: "walk" = on the walk itself; otherwise the Advanced tab id.
 export const INVENTORY = [
-  ["banner (simulated)", "ok", "walk", (r) => /SIMULATED/.test(text(q(r, '[data-testid="banner"]') || document.createElement("i")))],
+  ["mode modal (simulated)", "ok", "walk", (r) => /SIMULATED/.test(text(q(r, '[data-testid="mode-modal"]') || document.createElement("i")))],
   ["Reset button", "ok", "walk", (r) => tid(r, "reset")],
   ["Presenter button", "ok", "walk", (r) => tid(r, "presenter")],
   ["text size control", "ok", "walk", (r) => tid(r, "font-select")],
